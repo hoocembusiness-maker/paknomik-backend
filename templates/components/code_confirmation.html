@@ -1,0 +1,75 @@
+{% extends "base.html" %} {% block title %}Paknomik - Log in{% endblock %} {%
+load static %}
+<!-- -->
+{% block other_style_sheet %} {% endblock %}
+
+<!-- -->
+
+{% block start_container%} {% endblock %} {%block content %}
+<!-- -->
+
+{%block header %} {% endblock %}
+<!-- -->
+<div style="display: flex">
+  <div class="left_half">
+    <img src="/static/images/white_brand.png" class="logo_img" />
+    <p class="tagline">
+      The Gateway of <br /><span class="sub_tagline">THE PACKAGING MARKET</span>
+    </p>
+  </div>
+  <div class="right_half">
+    <!-- -->
+     <div style="width: 100%">
+      <p class="wellcome_text_2" >Verify your email</p>
+      <p style="text-align:center">We have sent an email to : {{crypted_email}}</p>
+    </div>
+    <div class="code_confirmation" >
+      <input class="digit-input" type="text" maxlength=1 />
+    <input  class="digit-input"  type="text" maxlength=1 />
+    <input  class="digit-input"  type="text" maxlength=1 />
+    <input class="digit-input"  type="text" maxlength=1 />
+    <input class="digit-input"  type="text" maxlength=1 />
+    <input class="digit-input" type="text" maxlength=1 />
+    </div>
+    <!-- -->
+    </div>
+  </div>
+</div>
+
+<script>
+  const hide_password = () => {
+    var pw_input = document.getElementById("password");
+    if (pw_input.type == "password") {
+      pw_input.type = "text";
+    } else {
+      pw_input.type = "password";
+    }
+  };
+
+  const GoToSignup = () => {
+    window.location.href = "{% url 'signup' %}";
+  };
+
+  
+// Select all 6 digit inputs (assumes they have class "digit-input")
+const inputs = document.querySelectorAll('.digit-input');
+
+// Add input event listener to each field
+inputs.forEach((input, index) => {
+  input.addEventListener('input', () => {
+    // If current field has a value (not empty)
+    if (input.value.length === 1) {
+      // Move focus to the next input, if it exists
+      const nextInput = inputs[index + 1];
+      if (nextInput) nextInput.focus();
+    }
+  });
+});
+
+</script>
+
+<!-- -->
+
+{% endblock %}
+<!-- -->
+{%block footer %} {% endblock %} {% block end_container%} {% endblock %}

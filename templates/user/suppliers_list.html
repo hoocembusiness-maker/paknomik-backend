@@ -1,0 +1,112 @@
+{% extends "base beta.html" %}
+{% load static %}
+{% block title %}Suppliers{% endblock %}
+{% block content %}
+<style>
+  .filter-form-horizontal {
+    display: flex;
+    flex-wrap: wrap;          /* wrap on smaller screens */
+    align-items: flex-end;    /* align items to the bottom */
+    gap: 1rem;                /* space between field groups */
+    padding: 1rem 0;
+  }
+  
+  .filter-form-horizontal .field-group {
+    flex: 1 0 auto;           /* grow but don't force equal widths */
+    min-width: 120px;         /* prevent too narrow fields */
+  }
+  
+  .filter-form-horizontal label {
+    display: block;           /* label above the input */
+    font-weight: bold;
+    margin-bottom: 0.25rem;
+    font-size: 0.9rem;
+  }
+  
+  .filter-form-horizontal input,
+  .filter-form-horizontal select {
+    width: 100%;
+    padding: 0.4rem 0.6rem;
+    border: 1px solid #ccc;
+    border-top-right-radius: 2em;
+    border-top-left-radius: 2em;
+    border-bottom-right-radius: 0.8em;
+    border-bottom-left-radius: 0.8em;
+    box-sizing: border-box;
+  }
+  
+  .filter-form-horizontal .button-group {
+    display: flex;
+    align-items: flex-end;    /* align button with inputs */
+    padding-bottom: 0;        /* adjust as needed */
+  }
+  
+  .filter-form-horizontal .btn-primary {
+    padding: 0.4rem 1.2rem;
+    white-space: nowrap;
+    border-top-right-radius: 2em;
+    border-top-left-radius: 2em;
+    border-bottom-right-radius: 0.8em;
+    border-bottom-left-radius: 0.8em;
+  }
+</style>
+<div style="padding: 20px;">
+  <h3>Fournisseurs ({{ supplier_count }})</h3>
+  
+  <!-- filter form -->
+  <form method="get" class="filter-form-horizontal">
+    {% for field in form %}
+      <div class="field-group">
+        {{ field.label_tag }}
+        {{ field }}
+        {% if field.help_text %}
+          <small class="help-text">{{ field.help_text }}</small>
+        {% endif %}
+        {% for error in field.errors %}
+          <div class="error">{{ error }}</div>
+        {% endfor %}
+      </div>
+    {% endfor %}
+    <div class="button-group">
+      <button type="submit" class="btn-primary">Filter</button>
+    </div>
+  </form>
+
+  
+<!-- ... header and form remain the same ... -->
+
+{% for pair in paired_suppliers %}
+<div class="grid_row">
+    {% for supplier in pair %}
+    <div class="small_card_paknomik" onclick="location.href='{% url 'supplier_detail' supplier.id %}'">
+        {% if supplier.logo %}
+            <img src="{{ supplier.logo.url }}" alt="{{ supplier.company_name }}" style="width: 80%;"/>
+        {% else %}
+            <img src="{% static 'images/logo_icon.png' %}" alt="{{ supplier.company_name }}" />
+        {% endif %}
+        <div class="small_card_paknomik_title_container">
+            <h3 class="category_name">{{ supplier.company_name }}</h3>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endfor %}
+
+{% if page_obj.has_other_pages %}
+  <div class="pagination">
+    <span class="step-links">
+      {% if page_obj.has_previous %}
+        <a class="signup paknomik_btn" href="?page=1">&laquo; first</a>
+        <a class="signup paknomik_btn" href="?page={{ page_obj.previous_page_number }}">previous</a>
+      {% endif %}
+      <span class="current-page">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+      {% if page_obj.has_next %}
+        <a class="signup paknomik_btn" href="?page={{ page_obj.next_page_number }}">next</a>
+        <a class="signup paknomik_btn" href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+      {% endif %}
+    </span>
+  </div>
+  {% endif %}  
+
+</div>  
+  {% endblock %}

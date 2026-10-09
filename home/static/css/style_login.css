@@ -1,0 +1,312 @@
+.logo_img {
+  margin: 8vw;
+  height: 6vw;
+}
+
+.left_half {
+  flex: 1;
+  width: 100%;
+  height: 100vh;
+  text-align: center;
+  background: #2c2342;
+}
+
+.tagline {
+  color: white;
+  font-family: Quicksand;
+  font-size: 2rem;
+}
+.sub_tagline {
+  font-size: 3rem;
+}
+
+.right_half {
+  flex: 1;
+  width: 100%;
+  height: 100vh;
+  padding: 4vw;
+}
+
+.first_action {
+  height: fit-content;
+  justify-content: space-between;
+  justify-self: end;
+  align-items: center;
+  display: flex;
+  gap: 1vw;
+}
+
+.last_action {
+  height: fit-content;
+  justify-content: space-between;
+  justify-self: start;
+  align-items: center;
+  display: flex;
+  gap: 1vw;
+}
+
+.first_action span {
+  font-size: 1.3rem;
+  font-family: Quicksand;
+  color: #2a2142;
+}
+
+.first_action button {
+  font-size: 1.3rem;
+}
+.first_action a {
+  font-size: 1.3rem;
+}
+
+.auth-button {
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 8px 18px;
+  border-top-right-radius: 2em;
+  border-top-left-radius: 2em;
+  border-bottom-right-radius: 0.8em;
+  border-bottom-left-radius: 0.8em;
+  transition: 0.2s;
+  border: 0;
+  font-family: Quicksand;
+}
+
+.wellcome_text {
+  font-size: 2rem;
+  font-family: Quicksand;
+  color: #2a2142;
+  margin: 1vw;
+  justify-self: center;
+  margin-top: 7vw;
+  margin-bottom: 2vw;
+}
+
+.wellcome_text_2 {
+  font-size: 2rem;
+  font-family: Quicksand;
+  color: #2a2142;
+  margin: 1vw;
+  justify-self: center;
+  margin-top: 1vw;
+  margin-bottom: 2vw;
+  text-align: center;
+}
+
+.paknomik_login {
+  padding-right: 3vw;
+  padding-left: 3vw;
+  padding-top: 1vw;
+}
+
+.paknomik_login input {
+  padding: 12px 20px;
+  border-top-right-radius: 2em;
+  border-top-left-radius: 2em;
+  border-bottom-right-radius: 0.8em;
+  border-bottom-left-radius: 0.8em;
+  justify-self: center;
+  border: 2px solid #6c3b9e;
+  width: 100%;
+  margin-top: 1.2vw;
+  font-size: 1.2rem;
+  text-align: center;
+}
+
+.code_confirmation {
+  width: 100%;
+  padding-right: 3vw;
+  padding-left: 3vw;
+  padding-top: 1vw;
+  text-align: center;
+  justify-content: space-between;
+}
+
+.code_confirmation input {
+  padding: 12px 20px;
+  border-top-right-radius: 2em;
+  border-top-left-radius: 2em;
+  border-bottom-right-radius: 0.8em;
+  border-bottom-left-radius: 0.8em;
+  justify-self: center;
+  border: 2px solid #6c3b9e;
+  width: 15%;
+  margin-top: 1.2vw;
+  font-size: 1.2rem;
+  text-align: center;
+  display: inline;
+}
+
+#pass_match {
+  display: none;
+}
+
+#pass_length {
+  display: none;
+}
+
+#no_username {
+  display: none;
+}
+
+#no_email {
+  display: none;
+}
+
+.paknomik_login span {
+  font-size: 1.4rem;
+  font-family: Quicksand;
+  color: #2a2142;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.responsive_logo {
+  display: none;
+  width: 100%;
+  text-align: center;
+}
+.seperator {
+  border-top: 1px solid #ddd;
+  height: 0;
+  margin: 28px 0 25px;
+  position: relative;
+  width: 100%;
+}
+
+.paknomik_login button {
+  font-size: 1.2rem;
+  font-family: Quicksand;
+  justify-self: start;
+  margin-top: 0;
+  width: 25%;
+}
+
+.pw_input_container_login {
+  display: flex;
+}
+
+.login_btn {
+  margin-top: 2vw;
+}
+.login-actions {
+  display: flex;
+  justify-content: space-between; /* pushes the span to the right */
+  align-items: center;
+  margin-top: 1.2vw; /* consistent spacing */
+}
+.social_sign {
+  width: 45%;
+  font-size: 1rem;
+  text-align: center;
+}
+
+.register{
+    width: 40%;
+  }
+.become_supplier{font-size: 1.8rem; color: #2a2142;padding: 0.25rem;}
+.add_supplier_header{display: flex; align-items: center; justify-content:center;width:100%;gap:10vw; margin-bottom: 30px;}
+@media (max-width: 900px) {
+  .add_supplier_header{
+    display: block;
+  }
+  .under_become_supplier{display: none;}
+  .logo_img {
+    height: 10vw;
+  }
+  .become_supplier{
+    display: block;
+    font-size: 1.2rem;
+  }
+  .register{
+    width: 100%;
+  }
+  .left_half {
+    display: none;
+  }
+  .wellcome_text {
+    margin-top: 20vw;
+    margin-bottom: 8vw;
+  }
+  .responsive_logo {
+    display: block;
+  }
+  .responsive_logo img {
+    width: 50%;
+    height: 100%;
+  }
+  .login_forgot {
+    font-size: 0.1rem;
+  }
+
+  /* Fix social buttons - vertical alignment */
+  .social_log {
+    display: flex;
+    flex-direction: column; /* Stack vertically */
+    align-items: center; /* Center horizontally */
+    gap: 1rem; /* Space between buttons */
+    padding-left: 10%;
+    padding-right: 10%;
+  }
+
+  .social_sign {
+    display: block;
+    width: 100%; /* Full width buttons */
+
+    text-align: center;
+  }
+  .login_btn {
+    margin-top: 5vw;
+  }
+  .logo_img {
+    margin: 2vw;
+  }
+
+  /* Also fix register button on mobile */
+  .last_action button.auth-button.signup {
+    width: auto !important;
+    padding-left: 10vw !important;
+    padding-right: 10vw !important;
+  }
+
+  /* Fix form inputs on mobile */
+  .paknomik_login input {
+    font-size: 1rem;
+    padding: 10px 16px;
+  }
+
+  .paknomik_login button {
+    width: auto;
+    padding: 8px 16px;
+  }
+}
+.social_log {
+  width: 100%;
+  display: flex;
+  text-align: center;
+  justify-content: space-between;
+  padding-left: 10%;
+  padding-right: 10%;
+}
+
+button.auth-button.signup {
+  background: #6c3b9e;
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-family: Quicksand;
+  font-weight: 600;
+  padding: 8px 18px;
+  border-top-right-radius: 2em;
+  border-top-left-radius: 2em;
+  border-bottom-right-radius: 0.8em;
+  border-bottom-left-radius: 0.8em;
+  transition: 0.2s;
+}
+
+button.auth-button.submit {
+  width: auto;
+}
+
+button.auth-button.signup:hover {
+  background: #4f2b78;
+}

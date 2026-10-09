@@ -1,0 +1,97 @@
+{% extends "user/base_auth.html" %}
+{% load static %}
+
+{% block title %}Paknomik - Edit Supplier Profile{% endblock %}
+
+{% block content %}
+<div style="padding: 20px; max-width: 800px; margin: 0 auto;">
+  <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 30px;">
+    <a href="{% url 'supplier_dashboard' %}" class="auth-button login">
+      <i class="fas fa-arrow-left"></i> Back to Dashboard
+    </a>
+    <h1 style="font-size: 1.8rem; color: #2a2142;">Edit Supplier Profile</h1>
+  </div>
+  
+  <div class="dashboard-card">
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      
+      <!-- Logo Section -->
+      <div style="text-align: center; margin-bottom: 30px;">
+        <div style="position: relative; display: inline-block;">
+          {% if supplier.logo %}
+            <img id="logo-preview" src="{{ supplier.logo.url }}" 
+                 style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid #6c3b9e;">
+          {% else %}
+            <div id="logo-preview" style="width: 120px; height: 120px; border-radius: 50%; background: linear-gradient(135deg, #e9e2fc, #d4c5f0); display: flex; align-items: center; justify-content: center; border: 3px solid #6c3b9e;">
+              <i class="fas fa-store" style="font-size: 50px; color: #6c3b9e;"></i>
+            </div>
+          {% endif %}
+          <label for="id_logo" style="position: absolute; bottom: 0; right: 0; background: #6c3b9e; color: white; width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+            <i class="fas fa-camera"></i>
+          </label>
+          <input type="file" name="logo" id="id_logo" style="display: none;" accept="image/*">
+        </div>
+        <p style="font-size: 12px; color: #666; margin-top: 10px;">Click the camera icon to change your company logo</p>
+      </div>
+      
+      <div class="paknomik_login">
+        {% for field in form %}
+          <div class="form-group">
+            <label class="form-label">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}
+              <div class="help-text">{{ field.help_text }}</div>
+            {% endif %}
+            {% if field.errors %}
+              <ul class="errorlist">
+                {% for error in field.errors %}
+                  <li>{{ error }}</li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+          </div>
+        {% endfor %}
+        
+        <div class="last_action" style="justify-content: space-between; margin-top: 30px;">
+          <button type="submit" class="auth-button signup" style="padding: 12px 30px;">
+            <i class="fas fa-save"></i> Save Changes
+          </button>
+          <a href="{% url 'supplier_dashboard' %}" class="auth-button login" style="padding: 12px 30px;">
+            Cancel
+          </a>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  // Preview logo before upload
+  const logoInput = document.getElementById('id_logo');
+  const preview = document.getElementById('logo-preview');
+  
+  logoInput.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        if (preview.tagName === 'IMG') {
+          preview.src = event.target.result;
+        } else {
+          const newImg = document.createElement('img');
+          newImg.id = 'logo-preview';
+          newImg.src = event.target.result;
+          newImg.style.width = '120px';
+          newImg.style.height = '120px';
+          newImg.style.borderRadius = '50%';
+          newImg.style.objectFit = 'cover';
+          newImg.style.border = '3px solid #6c3b9e';
+          preview.parentNode.replaceChild(newImg, preview);
+        }
+      }
+      reader.readAsDataURL(file);
+    }
+  });
+</script>
+{% endblock %}

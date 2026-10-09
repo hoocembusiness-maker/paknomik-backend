@@ -1,0 +1,12 @@
+{% extends "user/base_auth.html" %}
+{% block title %}Supplier Inquiries{% endblock %}
+{% block content %}
+<div style="padding: 20px;">
+  <h1>Supplier Inquiries</h1>
+  {% for inquiry in page_obj %}
+    <div><a href="{% url 'inquiry_detail' inquiry.id %}">{{ inquiry.subject }}</a> - {{ inquiry.client.email }}</div>
+  {% empty %}
+    <p>No inquiries.</p>
+  {% endfor %}
+</div>
+{% endblock %}

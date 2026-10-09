@@ -1,0 +1,17 @@
+.env
+.env.*
+!.env.example
+db.sqlite3
+*.sqlite3
+*.sqlite3.bak*
+*.sqlite3-journal
+/media/
+/staticfiles/
+/static/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+*.mmdb
+.railway/

@@ -1,0 +1,81 @@
+{% extends "user/base_auth.html" %}
+{% load static %}
+{% load socialaccount %}
+
+{% block title %}Paknomik - Sign Up{% endblock %}
+
+{% block start_container %}{% endblock %}
+
+{% block content %}
+<div style="display: flex">
+  <div class="left_half">
+    <a href="{% url 'home' %}">
+      <img src="{% static 'images/white_brand.png' %}" class="logo_img" />
+    </a>
+    <img src="{% static 'images/paknomik_lineup.png' %}" style="height: 20vw; border-radius: 1vw" />
+  </div>
+  
+  <div class="right_half">
+    <div class="responsive_logo">
+      <a href="{% url 'home' %}">
+        <img src="{% static 'images/colored_brand.png' %}" style="height: 60px;" />
+      </a>
+    </div>
+    
+    <div class="first_action">
+      <span>Already have an account?</span>
+      <a href="{% url 'account_login' %}" class="auth-button signup" style="padding-left: 3vw; padding-right: 3vw">
+        Login
+      </a>
+    </div>
+    
+    <div style="width: 100%">
+      <p class="wellcome_text_2">Create Account</p>
+      <p style="text-align: center; color: #666;">Join Paknomik - The Packaging Marketplace</p>
+    </div>
+    
+    <!-- Social Login -->
+    <div class="social_log" style="margin-bottom: 20px;">
+      <a href="/api/auth/google/?redirect=/" class="auth-button signup social_sign" style="background: #34a853;">
+        <i style="margin-right: 1vw" class="fab fa-google"></i> Sign up with Google
+      </a>
+    </div>
+    
+    <div class="seperator">
+      <span style="background-color:#faf8ff; color:#1e1a2f; font-family:Quicksand; font-size:15px; padding:0 8px; position:absolute; left:50%; transform:translate(-50%, -50%);">
+        OR
+      </span>
+    </div>
+    
+    <!-- Email Signup Form -->
+    <form method="post">
+      {% csrf_token %}
+      <div class="paknomik_login">
+        {% for field in form %}
+          <div class="form-group">
+            <label class="form-label">{{ field.label }}</label>
+            {{ field }}
+            {% if field.errors %}
+              <ul class="errorlist">
+                {% for error in field.errors %}
+                  <li>{{ error }}</li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+          </div>
+        {% endfor %}
+        
+        <div class="last_action" style="justify-content: center; margin-top: 20px;">
+          <button type="submit" class="auth-button signup" style="padding: 12px 40px; width: auto;">
+            Create Account
+          </button>
+        </div>
+      </div>
+    </form>
+    
+    <p style="text-align: center; font-size: 12px; color: #666; margin-top: 20px;">
+      By signing up, you agree to our <a href="#" style="color: #6c3b9e;">Terms of Service</a> and <a href="#" style="color: #6c3b9e;">Privacy Policy</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

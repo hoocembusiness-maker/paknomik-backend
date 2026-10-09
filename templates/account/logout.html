@@ -1,0 +1,29 @@
+{% extends "base.html" %} {% load i18n %} {% block content %}
+<div
+  style="
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  "
+>
+  <h1 class="wellcome_text_2">{% trans "Sign Out" %}</h1>
+  <p class="tagline" style="font-size: 1.2rem; margin-bottom: 20px">
+    Are you sure you want to sign out of
+    <span class="sub_tagline">Paknomik</span> ?
+  </p>
+
+  <form method="post" action="{% url 'account_logout' %}">
+    {% csrf_token %} {% if redirect_field_value %}
+    <input
+      type="hidden"
+      name="{{ redirect_field_name }}"
+      value="{{ redirect_field_value }}"
+    />
+    {% endif %}
+    <button type="submit" class="auth-button signup" style="padding: 10px 40px">
+      {% trans "Sign Out" %}
+    </button>
+  </form>
+</div>
+{% endblock %}

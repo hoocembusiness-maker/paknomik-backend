@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Media Detail{% endblock %}
+{% block content %}
+<div style="padding: 20px;">
+  <h1>{{ post.title }}</h1>
+  <p>{{ post.content }}</p>
+  <h2>Comments</h2>
+  {% for comment in comments %}
+    <div>{{ comment.user.email }}: {{ comment.content }}</div>
+  {% empty %}
+    <p>No comments.</p>
+  {% endfor %}
+</div>
+{% endblock %}

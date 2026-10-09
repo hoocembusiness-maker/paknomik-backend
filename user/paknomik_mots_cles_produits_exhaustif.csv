@@ -1,0 +1,109 @@
+﻿mot_cle_en;mot_cle_fr;mot_cle_ar;type_source;type_cible;cible;id_categorie;segments_concernes;poids
+tablet;Comprimé / Tablette;قرص دواء;Product;Filtre global;Filtre : Segment fin produit;;Pharmaceutical;9
+syrup;Sirop;شراب دواء;Product;Filtre global;Filtre : Segment fin produit;;Pharmaceutical;8
+injection;Solution injectable;حقن دواء;Product;Filtre global;Filtre : Segment fin produit;;Pharmaceutical;7
+vaccine;Vaccin;لقاح;Product;Filtre global;Filtre : Segment fin produit;;Pharmaceutical;7
+capsule;Gélule / Capsule;كبسولة دواء;Product;Filtre global;Filtre : Segment fin produit;;Pharmaceutical;8
+ointment;Pommade / Ointment;مرهم;Product;Filtre global;Filtre : Segment fin produit;;Pharmaceutical;8
+eye drops;Collyre / Gouttes oculaires;قطرة عين;Product;Filtre global;Filtre : Segment fin produit;;Pharmaceutical;7
+nasal spray;Spray nasal;بخاخ أنف;Product;Filtre global;Filtre : Segment fin produit;;Pharmaceutical;7
+antiseptic;Antiseptique;مطهر;Product;Filtre global;Filtre : Segment fin produit;;Pharmaceutical;8
+medical device;Dispositif médical;جهاز طبي;Product;Filtre global;Filtre : Segment fin produit;;Medical;7
+diagnostic kit;Kit de diagnostic;طقم تشخيص;Product;Filtre global;Filtre : Segment fin produit;;Medical;7
+surgical gloves;Gants chirurgicaux;قفازات جراحية;Product;Filtre global;Filtre : Segment fin produit;;Medical;6
+bandage;Pansement / Bande;ضمادة طبية;Product;Filtre global;Filtre : Segment fin produit;;Medical;6
+shampoo;Shampooing;شامبو;Product;Filtre global;Filtre : Segment fin produit;;Personal Care;10
+body wash;Gel douche;جيل للاستحمام;Product;Filtre global;Filtre : Segment fin produit;;Personal Care;9
+conditioner;Après-shampooing;بلسم;Product;Filtre global;Filtre : Segment fin produit;;Personal Care;9
+deodorant;Déodorant;مزيل عرق;Product;Filtre global;Filtre : Segment fin produit;;Personal Care;9
+face cream;Crème visage;كريم الوجه;Product;Filtre global;Filtre : Segment fin produit;;Cosmetics;9
+perfume;Parfum;عطر;Product;Filtre global;Filtre : Segment fin produit;;Cosmetics;9
+foundation;Fond de teint;كريم أساس;Product;Filtre global;Filtre : Segment fin produit;;Cosmetics;8
+lipstick;Rouge à lèvres;أحمر شفاه;Product;Filtre global;Filtre : Segment fin produit;;Cosmetics;8
+mascara;Mascara;ماسكارا;Product;Filtre global;Filtre : Segment fin produit;;Cosmetics;8
+sunscreen;Crème solaire;واقي شمس;Product;Filtre global;Filtre : Segment fin produit;;Personal Care / Pharma;8
+serum;Sérum visage;سيروم للوجه;Product;Filtre global;Filtre : Segment fin produit;;Cosmetics;8
+micellar water;Eau micellaire;ماء ميسيلار;Product;Filtre global;Filtre : Segment fin produit;;Cosmetics;8
+body lotion;Lait corporel / Lotion;لوشن للجسم;Product;Filtre global;Filtre : Segment fin produit;;Personal Care;8
+face mask;Masque visage;قناع الوجه;Product;Filtre global;Filtre : Segment fin produit;;Cosmetics;7
+nail polish;Vernis à ongles;طلاء الأظافر;Product;Filtre global;Filtre : Segment fin produit;;Cosmetics;7
+essential oil;Huile essentielle;زيت عطري;Product;Filtre global;Filtre : Segment fin produit;;Cosmetics / Wellness;8
+hair dye;Coloration cheveux;صبغة شعر;Product;Filtre global;Filtre : Segment fin produit;;Personal Care;7
+toothpaste;Dentifrice;معجون أسنان;Product;Filtre global;Filtre : Segment fin produit;;Oral Care;9
+mouthwash;Bain de bouche;غسول الفم;Product;Filtre global;Filtre : Segment fin produit;;Oral Care;8
+toothbrush;Brosse à dents;فرشاة أسنان;Product;Filtre global;Filtre : Segment fin produit;;Oral Care;8
+honey;Miel;عسل;Product;Filtre global;Filtre : Segment fin produit;;Food;10
+biscuit;Biscuit;بسكويت;Product;Filtre global;Filtre : Segment fin produit;;Food — Bakery;9
+chips;Chips;شيبس;Product;Filtre global;Filtre : Segment fin produit;;Food — Snacks;9
+chocolate;Chocolat;شوكولاتة;Product;Filtre global;Filtre : Segment fin produit;;Food — Confectionery;9
+jam;Confiture;مربى;Product;Filtre global;Filtre : Segment fin produit;;Food;9
+milk;Lait;حليب;Product;Filtre global;Filtre : Segment fin produit;;Food — Dairy;9
+olive oil;Huile d'olive;زيت زيتون;Product;Filtre global;Filtre : Segment fin produit;;Food — Edible Oil;9
+sauce;Sauce;صلصة;Product;Filtre global;Filtre : Segment fin produit;;Food — Condiments;9
+yogurt;Yaourt;زبادي;Product;Filtre global;Filtre : Segment fin produit;;Food — Dairy;9
+beef;Viande de bœuf;لحم بقر;Product;Filtre global;Filtre : Segment fin produit;;Food — Meat;8
+butter;Beurre;زبدة;Product;Filtre global;Filtre : Segment fin produit;;Food — Dairy;8
+cereal;Céréales;حبوب الإفطار;Product;Filtre global;Filtre : Segment fin produit;;Food — Dry Goods;8
+cheese;Fromage;جبن;Product;Filtre global;Filtre : Segment fin produit;;Food — Dairy;8
+chicken;Poulet;دجاج;Product;Filtre global;Filtre : Segment fin produit;;Food — Meat;8
+flour;Farine;طحين / فرينة;Product;Filtre global;Filtre : Segment fin produit;;Food — Dry Goods;8
+ice cream;Crème glacée / Glace;بوظة / آيس كريم;Product;Filtre global;Filtre : Segment fin produit;;Food — Frozen;8
+nuts;Fruits secs / Noix;مكسرات;Product;Filtre global;Filtre : Segment fin produit;;Food — Snacks;8
+pasta;Pâtes;معكرونة;Product;Filtre global;Filtre : Segment fin produit;;Food — Dry Goods;8
+rice;Riz;أرز;Product;Filtre global;Filtre : Segment fin produit;;Food — Dry Goods;8
+salt;Sel;ملح;Product;Filtre global;Filtre : Segment fin produit;;Food — Cooking;8
+spices;Épices;توابل / بهارات;Product;Filtre global;Filtre : Segment fin produit;;Food — Cooking;8
+sugar;Sucre;سكر;Product;Filtre global;Filtre : Segment fin produit;;Food — Dry Goods;8
+tuna;Thon;تونة;Product;Filtre global;Filtre : Segment fin produit;;Food — Canned;8
+cream;Crème fraîche;قشطة / خامة;Product;Filtre global;Filtre : Segment fin produit;;Food — Dairy;7
+dried fruit;Fruits séchés;فواكه مجففة;Product;Filtre global;Filtre : Segment fin produit;;Food — Snacks;7
+frozen vegetables;Légumes surgelés;خضروات مجمدة;Product;Filtre global;Filtre : Segment fin produit;;Food — Frozen;7
+ready meal;Plat préparé;وجبة جاهزة;Product;Filtre global;Filtre : Segment fin produit;;Food — Frozen;7
+salmon;Saumon;سلمون;Product;Filtre global;Filtre : Segment fin produit;;Food — Seafood;7
+shrimp;Crevettes;جمبري / كابرون;Product;Filtre global;Filtre : Segment fin produit;;Food — Seafood;7
+soup;Soupe / Potage;حساء / شوربة;Product;Filtre global;Filtre : Segment fin produit;;Food — Canned;7
+vinegar;Vinaigre;خل;Product;Filtre global;Filtre : Segment fin produit;;Food — Condiments;7
+mayonnaise;Mayonnaise;مايونيز;Product;Filtre global;Filtre : Segment fin produit;;Food — Condiments;8
+ketchup;Ketchup;كاتشب;Product;Filtre global;Filtre : Segment fin produit;;Food — Condiments;8
+mustard;Moutarde;خردل;Product;Filtre global;Filtre : Segment fin produit;;Food — Condiments;7
+tomato paste;Double concentré de tomate;معجون طماطم;Product;Filtre global;Filtre : Segment fin produit;;Food — Canned;8
+dates;Dattes;تمر;Product;Filtre global;Filtre : Segment fin produit;;Food — Dry Goods;8
+couscous;Couscous;كسكس;Product;Filtre global;Filtre : Segment fin produit;;Food — Dry Goods;8
+coffee beans;Café en grains / Moulu;حبوب القهوة / مطحون;Product;Filtre global;Filtre : Segment fin produit;;Beverage / Food;8
+candy;Bonbons / Confiserie;حلوى;Product;Filtre global;Filtre : Segment fin produit;;Food — Confectionery;8
+bakery pastry;Pâtisserie;حلويات معجنات;Product;Filtre global;Filtre : Segment fin produit;;Food — Bakery;7
+coffee;Café;قهوة;Product;Filtre global;Filtre : Segment fin produit;;Beverage;10
+tea;Thé;شاي;Product;Filtre global;Filtre : Segment fin produit;;Beverage;10
+water;Eau minérale;ماء معدني;Product;Filtre global;Filtre : Segment fin produit;;Beverage;10
+beer;Bière;بيرة;Product;Filtre global;Filtre : Segment fin produit;;Beverage — Alcohol;9
+juice;Jus de fruits;عصير فواكه;Product;Filtre global;Filtre : Segment fin produit;;Beverage;9
+wine;Vin;نبيذ;Product;Filtre global;Filtre : Segment fin produit;;Beverage — Alcohol;9
+energy drink;Boisson énergétique;مشروب طاقة;Product;Filtre global;Filtre : Segment fin produit;;Beverage;8
+spirits;Boissons spiritueuses / Alcool;مشروبات روحية;Product;Filtre global;Filtre : Segment fin produit;;Beverage — Alcohol;8
+soda;Sodats / Boisson gazeuse;مشروب غازي;Product;Filtre global;Filtre : Segment fin produit;;Beverage;9
+flavored water;Eau aromatisée;ماء منكه;Product;Filtre global;Filtre : Segment fin produit;;Beverage;7
+iced tea;Thé glacé;شاي المثلج;Product;Filtre global;Filtre : Segment fin produit;;Beverage;7
+baby food;Aliments pour bébé;غذاء الرضع;Product;Filtre global;Filtre : Segment fin produit;;Baby & Infant Care;8
+nappies;Couches bébé;حفاضات الأطفال;Product;Filtre global;Filtre : Segment fin produit;;Baby & Infant Care;8
+baby milk;Lait infantile;حليب الأطفال;Product;Filtre global;Filtre : Segment fin produit;;Baby & Infant Care;9
+baby wipes;Lingettes bébé;مناديل مبللة للأطفال;Product;Filtre global;Filtre : Segment fin produit;;Baby & Infant Care;8
+detergent;Détergent / Lessive;منظف / مسحوق غسيل;Product;Filtre global;Filtre : Segment fin produit;;Household;8
+bleach;Eau de Javel;مبيض / جافيل;Product;Filtre global;Filtre : Segment fin produit;;Household;7
+candle;Bougie;شمعة;Product;Filtre global;Filtre : Segment fin produit;;Household / Luxury;7
+cleaning spray;Spray nettoyant;بخاخ تنظيف;Product;Filtre global;Filtre : Segment fin produit;;Household;7
+dishwashing liquid;Liquide vaisselle;سائل غسيل الأواني;Product;Filtre global;Filtre : Segment fin produit;;Household;8
+fabric softener;Adoucissant / Assouplissant;منعم أقمشة;Product;Filtre global;Filtre : Segment fin produit;;Household;7
+insecticide;Insecticide;مبيد حشرات منزلية;Product;Filtre global;Filtre : Segment fin produit;;Household;7
+supplement;Complément alimentaire;مكمل غذائي;Product;Filtre global;Filtre : Segment fin produit;;Nutraceutical;8
+protein powder;Protéine en poudre;مسحوق البروتين;Product;Filtre global;Filtre : Segment fin produit;;Sports Nutrition;8
+vitamins;Vitamines;فيتامينات;Product;Filtre global;Filtre : Segment fin produit;;Nutraceutical;8
+pet food;Nourriture pour animaux;طعام الحيوانات الأليفة;Product;Filtre global;Filtre : Segment fin produit;;Pet Care;8
+cat litter;Litière pour chat;رمل القطط;Product;Filtre global;Filtre : Segment fin produit;;Pet Care;7
+paint;Peinture;طلاء / دهان;Product;Filtre global;Filtre : Segment fin produit;;Industrial;6
+pesticide;Pesticide;مبيد حشري;Product;Filtre global;Filtre : Segment fin produit;;Agriculture;6
+fertilizer;Engrais / Fertilisant;أسمدة;Product;Filtre global;Filtre : Segment fin produit;;Agriculture;7
+motor oil;Huile moteur;زيت المحرك;Product;Filtre global;Filtre : Segment fin produit;;Automotive / Industrial;7
+lubricant;Lubrifiant industriel;زيوت تشحيم;Product;Filtre global;Filtre : Segment fin produit;;Industrial;6
+adhesive;Colle / Adhésif industriel;غراء / لاصق;Product;Filtre global;Filtre : Segment fin produit;;Industrial;6
+solvent;Solvant;مذيب كيميائي;Product;Filtre global;Filtre : Segment fin produit;;Chemical;6
+cement;Ciment / Matériaux;أسمنت;Product;Filtre global;Filtre : Segment fin produit;;Construction;6

@@ -1,0 +1,92 @@
+{% extends "base beta.html" %}
+{% block title %}Supplier Detail{% endblock %}
+{% block content %}
+<section class="market-page">
+  
+  <!-- 1. HEADER HERO CARD -->
+  <div class="supplier-card-header">
+    <div class="supplier-identity-block">
+      {% if supplier.logo %}
+        <img src="{{ supplier.logo.url }}" alt="{{ supplier.company_name }}" class="supplier-logo-large" />
+      {% endif %}
+      
+      <div class="supplier-info-meta">
+        <h1>{{ supplier.company_name }}</h1>
+        <div class="supplier-badges-row">
+          <span class="badge badge-location"><i class="fas fa-map-marker-alt"></i> {{ supplier.wilaya|default:"Algeria" }}</span>
+          <span class="badge">Rank: {{ supplier.rank_position }}</span>
+          <span class="badge">Products: {{ products|length }}</span>
+          <span class="badge">Orders: {{ supplier.total_orders }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right-aligned action circle buttons -->
+    <div class="supplier-actions-block">
+      <a class="btn-icon-action btn-outline-purple" href="#" title="Follow">
+        <i class="fas fa-heart"></i>
+      </a>
+      <a class="btn-icon-action btn-solid-purple" href="{% url 'contact_supplier' supplier.id %}" title="Contact">
+        <i class="fas fa-envelope"></i>
+      </a>
+      {% if supplier.website %}
+        <a class="btn-icon-action btn-outline-purple" href="{{ supplier.website }}" target="_blank" title="Website">
+          <i class="fas fa-globe"></i>
+        </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- 2. FULL-WIDTH NAVIGATION TABS -->
+  <div class="supplier-tabs-row">
+    <a class="tab-item {% if request.GET.tab != 'about' and request.GET.tab != 'products' %}active{% endif %}" href="{% url 'supplier_detail' supplier.id %}">Home</a>
+    <a class="tab-item {% if request.GET.tab == 'about' %}active{% endif %}" href="{% url 'supplier_detail' supplier.id %}?tab=about">About</a>
+    <a class="tab-item {% if request.GET.tab == 'products' %}active{% endif %}" href="{% url 'supplier_detail' supplier.id %}?tab=products">Products</a>
+  </div>
+
+  <!-- 3. DYNAMIC CONTENT AREA (Sits cleanly below) -->
+  <div class="supplier-view-content">
+    {% if request.GET.tab == 'about' %}
+      <div class="supplier-about-grid">
+        <div class="about-card">
+          <h2>Presentation</h2>
+          <p>{{ supplier.presentation|default:"No presentation yet." }}</p>
+        </div>
+        <div class="about-media">
+          {% if supplier.cover_image %}
+            <img src="{{ supplier.cover_image.url }}" alt="{{ supplier.company_name }}" />
+          {% endif %}
+        </div>
+      </div>
+    {% else %}
+      
+      </div>
+    {% endif %}
+  </div>
+</section>
+<div class="products-grid">
+  {% for product in products %}
+    <article class="product-card">
+      <a href="{% url 'product_detail' product.id %}">
+        {% if product.primary_image %}
+          <img src="{{ product.primary_image.url }}" alt="{{ product.name }}" class="product-card-image" />
+        {% endif %}
+      </a>
+      <h3>{{ product.name }}</h3>
+      <p class="chip">{{ product.price|default:"--" }} dzd</p>
+      <div class="product-meta">Supplier: {{ supplier.company_name }}</div>
+      <div class="product-meta">MOQ: {{ product.min_order_quantity }} units</div>
+      <div class="product-meta">Delivery: {{ product.lead_time_days }} days</div>
+      <div class="card-actions">
+        <a class="signup" href="{% url 'product_detail' product.id %}">Order Now</a>
+        <a class="login" href="{% url 'compare_products' %}?ids={{ product.id }}">Compare</a>
+      </div>
+    </article>
+  {% empty %}
+    <div class="empty-products-state">
+      <i class="fas fa-box-open"></i>
+      <p>No products available for this supplier yet.</p>
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}

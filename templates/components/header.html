@@ -1,0 +1,209 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com" rel="stylesheet" />
+  <title>Paknomik</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+  <link rel="stylesheet" href="{% static 'css/style_exported.css' %}" />
+  <style>
+    /* Styles for dropdown menus */
+    .dropdown-wrapper {
+      position: relative;
+      display: inline-block;
+    }
+    .dropdown-content_1 {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      background-color: white;
+      min-width: 200px;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+      border-radius: 12px;
+      z-index: 1000;
+      border: 1px solid #e9e2fc;
+      margin-top: 5px;
+      transform:translate(-25%,0%);
+    }
+    .dropdown-content_1 a {
+      color: #2a2142;
+      padding: 12px 16px;
+      text-decoration: none;
+      display: block;
+      font-size: 14px;
+      transition: background 0.2s;
+      cursor: pointer;
+    }
+    .dropdown-content_1 a:hover {
+      background-color: #f0eaff;
+      color: #6c3b9e;
+      border-radius: 12px;
+    }
+    .dropdown-content_2 {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      background-color: white;
+      min-width: 200px;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+      border-radius: 12px;
+      z-index: 1000;
+      border: 1px solid #e9e2fc;
+      margin-top: 5px;
+      transform:translate(-25%,0%);
+    }
+    .dropdown-content_2 a {
+      color: #2a2142;
+      padding: 12px 16px;
+      text-decoration: none;
+      display: block;
+      font-size: 14px;
+      transition: background 0.2s;
+      cursor: pointer;
+    }
+    .dropdown-content_2 a:hover {
+      background-color: #f0eaff;
+      color: #6c3b9e;
+      border-radius: 12px;
+    }
+    .show-dropdown {
+      display: block;
+    }
+    .show-dropdown_2 {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="nav-top">
+    <div class="logo">
+      <a href="{% url 'home' %}" style="text-decoration:none; display: flex;width:100%;justify-content:center">
+        <img src="/static/images/exported/paknomik.png" />
+        <h1>PAKNOMIK</h1>
+      </a>
+    </div>
+    <div class="search_bar" style="display: flex; width:100%; align-items: center; gap: 10px">
+      <input id="search" placeholder="Explore the packaging market" />
+      <button type="submit" style="color: #6c3b9e; font-weight: 500; background-color: transparent; border: 0; font-size: 1.5rem;">
+        <i class="fa fa-search" aria-hidden="true"></i>
+      </button>
+      {% if user.is_authenticated %}
+        <p class="hidden_btn username icon_profile" onClick="profil_pic_menu()">
+          {% if user.profile_picture %}
+            <img src="{{ user.profile_picture.url }}" alt="Profile Picture" style="width: 20px; height: 20px; border-radius: 50%;">
+          {% else %}
+            <i class="fa-solid fa-user-circle"></i>
+          {% endif %}
+        </p>
+        <div id="myDropdown_2" class="dropdown-content" style="right: 0; left: auto;">
+          <a href="{% url 'edit_profile' %}">Edit Profile</a>
+          {% if not user.is_verified_client %}
+            <a href="{% url 'complete_profile' %}">Complete Profile</a>
+          {% endif %}
+          <a href="#">Settings</a>
+          <a href="{% url 'account_logout' %}">Logout</a>
+        </div>
+      {% else %}
+        <button class="btn btn-default hidden_btn" type="button" style="color: #6c3b9e; font-weight: 500; background-color: transparent; border: 0; font-size: 1.5rem;" onClick="menu_btn()">
+          <i class="fa fa-bars" aria-hidden="true"></i>
+        </button>
+        <div id="myDropdown" class="dropdown-content" style="right: 0; left: auto;">
+          <a href="{% url 'account_login' %}">Login</a>
+          <a href="{% url 'account_signup' %}">Sign up</a>
+        </div>
+      {% endif %}
+    </div>
+    <div class="auth-buttons">
+      {% if user.is_authenticated %}
+        <a href="{% url 'user_dashboard' %}"><p class="username">{{ user.username }}</p></a>
+        <p class="username icon_profile" onClick="profil_pic_menu()">
+          <i class="fa-solid fa-user"></i>
+        </p>
+      {% else %}
+        <a href="{% url 'account_login' %}" class="login">Login</a>
+        <a href="{% url 'account_signup' %}" class="signup">Sign up</a>
+      {% endif %}
+    </div>
+  </div>
+  
+  <div style="text-align: center" >
+    <div class="nav-links" style="width: 100%; gap: 5vw">
+      <a href="#">Media</a>
+      <div class="dropdown-wrapper">
+      <a id="categoTrigger" href="#">Categories</a>
+        <div id="categoDropdown" class="dropdown-content_2" style="text-align:left;padding-left:1vw;padding-right:1vw">
+          {% for category in categories %}
+          <a class="segment_element" href="{% url 'catego' category.id %}">{{category.name}}</a>
+          {% if category == last_catego %}
+          <a class="segment_element" href="{% url 'catego' 0 %}">{{category.name}}</a>
+          {% endif %}
+        {% endfor %}
+        </div>  
+    </div>
+      <!-- Segments dropdown wrapper (on click) -->
+      <div class="dropdown-wrapper">
+        <a href="#" id="segmentsTrigger">Segments</a>
+        <div id="segmentsDropdown" class="dropdown-content_1" style="text-align:left;padding-left:1vw;padding-right:1vw">
+          
+          <a class="segment_element">Agro-alimentaire</a>
+          <a class="segment_element">Pharmaceutique</a>
+          <a class="segment_element">E-commerce</a>
+          <a class="segment_element">Cosmétique</a>
+          <a class="segment_element">Textile</a>
+          <a class="segment_element">Electronique</a>
+          <a class="segment_element">Autres</a>
+        </div>
+      </div>
+      <a href="{% url 'suppliers' %}">Suppliers</a>
+      <a href="#">Pricing</a>
+    </div>
+  </div>
+
+  <script>
+    // Toggle segments dropdown on click
+    const segmentsTrigger = document.getElementById('segmentsTrigger');
+    const segmentsDropdown = document.getElementById('segmentsDropdown');
+    const categoTrigger = document.getElementById('categoTrigger');
+    const categoDropdown = document.getElementById('categoDropdown')  ;
+   
+    categoTrigger.addEventListener('click', function(e) {
+      e.preventDefault();
+      categoDropdown.classList.toggle('show-dropdown_2');
+      console.log("categoTrigger");
+    });
+
+    segmentsTrigger.addEventListener('click', function(e) {
+      e.preventDefault();
+      segmentsDropdown.classList.toggle('show-dropdown');
+      console.log("segmentsTrigger");
+    });
+
+    // Close segments dropdown when clicking outside
+    window.addEventListener('click', function(event) {
+      if (!segmentsTrigger.contains(event.target) && !segmentsDropdown.contains(event.target)) {
+        segmentsDropdown.classList.remove('show-dropdown');
+      }
+      if (!categoDropdown.contains(event.target) && !categoTrigger.contains(event.target)) {
+        categoDropdown.classList.remove('show-dropdown_2');
+      }
+    });
+
+    // Existing functions
+    function menu_btn() {
+      document.getElementById("myDropdown").classList.toggle("show");
+    }
+    function profil_pic_menu() {
+      document.getElementById("myDropdown_2").classList.toggle("show_2");
+    }
+
+    
+
+  </script>
+</body>
+</html>

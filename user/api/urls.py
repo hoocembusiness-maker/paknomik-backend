@@ -1,0 +1,736 @@
+"""
+Lists all `/api/...` URL paths and which view handles each one.
+The React app calls these endpoints.
+"""
+
+from django.urls import path
+
+from user.api import views
+from user.api import admin_views
+from user.api import analytics_views
+from user.api import campaign_views
+from user.api import consent_views
+from user.api import consumption_views
+from user.api import contact_views
+from user.api import crm_views
+from user.api import digital_views
+from user.api import experiment_views
+from user.api import market_dashboard_views
+from user.api import quote_demand_views
+from user.api import rbac_views
+from user.api import sample_views
+from user.api import search_map_views
+from user.api import strategy_views
+from user.api import trade_views
+
+urlpatterns = [
+    path("stats", views.PlatformStatsView.as_view(), name="api_stats"),
+    path("stats/", views.PlatformStatsView.as_view()),
+    path(
+        "experiments/<str:key>/",
+        experiment_views.ExperimentConfigPublicView.as_view(),
+        name="api_experiment_config",
+    ),
+    path(
+        "experiments/<str:key>/impression/",
+        experiment_views.ExperimentImpressionView.as_view(),
+        name="api_experiment_impression",
+    ),
+    path(
+        "admin/experiments/<str:key>/",
+        experiment_views.AdminExperimentConfigView.as_view(),
+        name="api_admin_experiment_config",
+    ),
+    path("categories/", views.CategoryListView.as_view(), name="api_categories"),
+    path("subcategories/", views.SubCategoryListView.as_view(), name="api_subcategories"),
+    path("suppliers/", views.SupplierListView.as_view(), name="api_suppliers"),
+    path("suppliers/<int:pk>/", views.SupplierDetailView.as_view(), name="api_supplier_detail"),
+    path(
+        "suppliers/<int:pk>/messages/",
+        views.BuyerSupplierMessagesView.as_view(),
+        name="api_buyer_supplier_messages",
+    ),
+    path("products/", views.ProductListView.as_view(), name="api_products"),
+    path("products/compare/", views.ProductCompareView.as_view(), name="api_products_compare"),
+    path(
+        "products/compare/candidates/",
+        views.ProductCompareCandidatesView.as_view(),
+        name="api_products_compare_candidates",
+    ),
+    path("products/<int:pk>/", views.ProductDetailView.as_view(), name="api_product_detail"),
+    path(
+        "products/<int:pk>/technical-sheet/",
+        views.ProductTechnicalSheetPdfView.as_view(),
+        name="api_product_technical_sheet",
+    ),
+    path("orders/", views.OrderCreateView.as_view(), name="api_orders"),
+    path("search/suggestions/", views.SearchSuggestionsView.as_view(), name="api_search_suggestions"),
+    path(
+        "search/vocabulary/",
+        views.SearchVocabularyView.as_view(),
+        name="api_search_vocabulary",
+    ),
+    path(
+        "admin/search-map/",
+        search_map_views.AdminSearchMapListView.as_view(),
+        name="api_admin_search_map",
+    ),
+    path(
+        "admin/search-map/reseed-bobines/",
+        search_map_views.AdminSearchMapReseedView.as_view(),
+        name="api_admin_search_map_reseed",
+    ),
+    path(
+        "admin/search-map/terms/<int:pk>/",
+        search_map_views.AdminSearchMapTermView.as_view(),
+        name="api_admin_search_map_term",
+    ),
+    path(
+        "admin/search-misses/",
+        search_map_views.AdminSearchMissListView.as_view(),
+        name="api_admin_search_misses",
+    ),
+    path("auth/login/", views.LoginView.as_view(), name="api_login"),
+    path("auth/logout/", views.LogoutView.as_view(), name="api_logout"),
+    path("auth/register/", views.RegisterView.as_view(), name="api_register"),
+    path("auth/google/", views.GoogleAuthStartView.as_view(), name="api_google_auth"),
+    path("auth/google/token/", views.GoogleTokenAuthView.as_view(), name="api_google_token"),
+    path("auth/google/callback/", views.GoogleAuthCallbackView.as_view(), name="api_google_callback"),
+    path("rfq/", views.RfqView.as_view(), name="api_rfq"),
+    path("quote-requests/", views.RfqView.as_view(), name="api_quote_requests"),
+    path(
+        "sample-requests/",
+        sample_views.SampleRequestCreateView.as_view(),
+        name="api_sample_requests",
+    ),
+    path("pragmadinar/catalog/", quote_demand_views.PragmadinarCatalogView.as_view(), name="api_pragmadinar_catalog"),
+    path("supplier/wallet/", quote_demand_views.SupplierWalletView.as_view(), name="api_supplier_wallet"),
+    path(
+        "supplier/wallet/strategy/",
+        strategy_views.SupplierPragmadinarStrategyView.as_view(),
+        name="api_supplier_wallet_strategy",
+    ),
+    path(
+        "supplier/wallet/strategy/visit/",
+        strategy_views.SupplierPragmadinarStrategyVisitView.as_view(),
+        name="api_supplier_wallet_strategy_visit",
+    ),
+    path(
+        "supplier/wallet/strategy/reminder/",
+        strategy_views.SupplierPragmadinarStrategyReminderView.as_view(),
+        name="api_supplier_wallet_strategy_reminder",
+    ),
+    path(
+        "supplier/wallet/strategy/transfer/",
+        strategy_views.SupplierPragmadinarWalletTransferView.as_view(),
+        name="api_supplier_wallet_strategy_transfer",
+    ),
+    path(
+        "supplier/wallet/strategy/distribution/",
+        strategy_views.SupplierPragmadinarWalletDistributionView.as_view(),
+        name="api_supplier_wallet_strategy_distribution",
+    ),
+    path(
+        "supplier/wallet/strategy/reservations/<int:pk>/release/",
+        strategy_views.SupplierPragmadinarReservationReleaseView.as_view(),
+        name="api_supplier_wallet_strategy_release",
+    ),
+    path(
+        "supplier/wallet/consumption/",
+        consumption_views.SupplierPragmadinarConsumptionView.as_view(),
+        name="api_supplier_wallet_consumption",
+    ),
+    path(
+        "supplier/wallet/recharge/",
+        quote_demand_views.SupplierWalletRechargeView.as_view(),
+        name="api_supplier_wallet_recharge",
+    ),
+    path(
+        "quote-demands/candidates/",
+        quote_demand_views.QuoteDemandCandidateSuppliersView.as_view(),
+        name="api_quote_demand_candidates",
+    ),
+    path(
+        "quote-demands/cooldown/",
+        quote_demand_views.QuoteDemandCooldownView.as_view(),
+        name="api_quote_demand_cooldown",
+    ),
+    path(
+        "quote-demands/",
+        quote_demand_views.BuyerQuoteDemandListCreateView.as_view(),
+        name="api_quote_demands",
+    ),
+    path(
+        "quote-demands/<int:pk>/",
+        quote_demand_views.BuyerQuoteDemandDetailView.as_view(),
+        name="api_quote_demand_detail",
+    ),
+    path(
+        "quote-demands/<int:pk>/decide/",
+        quote_demand_views.BuyerQuoteDemandDecideView.as_view(),
+        name="api_quote_demand_decide",
+    ),
+    path(
+        "quote-demands/<int:pk>/convert-to-order/",
+        quote_demand_views.BuyerQuoteDemandConvertToOrderView.as_view(),
+        name="api_quote_demand_convert_to_order",
+    ),
+    path(
+        "quote-demands/<int:pk>/relaunch/",
+        quote_demand_views.BuyerQuoteDemandRelaunchView.as_view(),
+        name="api_quote_demand_relaunch",
+    ),
+    path(
+        "supplier/quote-demands/",
+        quote_demand_views.SupplierQuoteDemandListView.as_view(),
+        name="api_supplier_quote_demands",
+    ),
+    path(
+        "supplier/opportunities/",
+        quote_demand_views.SupplierOpportunityListView.as_view(),
+        name="api_supplier_opportunities",
+    ),
+    path(
+        "supplier/opportunities/<int:pk>/unlock/",
+        quote_demand_views.SupplierOpportunityUnlockView.as_view(),
+        name="api_supplier_opportunity_unlock",
+    ),
+    path(
+        "supplier/quote-demands/<int:pk>/respond/",
+        quote_demand_views.SupplierQuoteDemandRespondView.as_view(),
+        name="api_supplier_quote_demand_respond",
+    ),
+    path(
+        "notifications/quotes-seen/",
+        quote_demand_views.QuoteNotificationsSeenView.as_view(),
+        name="api_quotes_notifications_seen",
+    ),
+    # ── CRM fournisseur ────────────────────────────────────────────────────
+    path(
+        "supplier/entitlements/",
+        crm_views.SupplierEntitlementsView.as_view(),
+        name="api_supplier_entitlements",
+    ),
+    path(
+        "supplier/crm/dashboard/",
+        crm_views.SupplierCrmDashboardView.as_view(),
+        name="api_supplier_crm_dashboard",
+    ),
+    path(
+        "supplier/crm/companies/",
+        crm_views.CrmCompanyListView.as_view(),
+        name="api_crm_companies",
+    ),
+    path(
+        "supplier/crm/companies/<int:pk>/",
+        crm_views.CrmCompanyDetailView.as_view(),
+        name="api_crm_company_detail",
+    ),
+    path(
+        "supplier/crm/contacts/",
+        crm_views.CrmContactListView.as_view(),
+        name="api_crm_contacts",
+    ),
+    path(
+        "supplier/crm/contacts/<int:pk>/",
+        crm_views.CrmContactDetailView.as_view(),
+        name="api_crm_contact_detail",
+    ),
+    path(
+        "supplier/crm/opportunities/",
+        crm_views.OpportunityListView.as_view(),
+        name="api_crm_opportunities",
+    ),
+    path(
+        "supplier/crm/opportunities/<int:pk>/",
+        crm_views.OpportunityDetailView.as_view(),
+        name="api_crm_opportunity_detail",
+    ),
+    path(
+        "supplier/crm/pipeline/",
+        crm_views.OpportunityPipelineView.as_view(),
+        name="api_crm_pipeline",
+    ),
+    path(
+        "supplier/crm/activities/",
+        crm_views.CrmActivityListView.as_view(),
+        name="api_crm_activities",
+    ),
+    path(
+        "supplier/crm/activities/<int:pk>/",
+        crm_views.CrmActivityDetailView.as_view(),
+        name="api_crm_activity_detail",
+    ),
+    path(
+        "supplier/wallet/transactions/",
+        crm_views.SupplierPragmadinarTransactionsView.as_view(),
+        name="api_supplier_pragmadinar_transactions",
+    ),
+    # ── Analytics et rapports ──────────────────────────────────────────────
+    path(
+        "supplier/analytics/catalog/",
+        analytics_views.AnalyticsCatalogView.as_view(),
+        name="api_analytics_catalog",
+    ),
+    path(
+        "supplier/analytics/current-month/",
+        analytics_views.AnalyticsCurrentMonthView.as_view(),
+        name="api_analytics_current_month",
+    ),
+    path(
+        "supplier/analytics/reports/",
+        analytics_views.AnalyticsReportListView.as_view(),
+        name="api_analytics_reports",
+    ),
+    path(
+        "supplier/analytics/reports/<int:pk>/",
+        analytics_views.AnalyticsReportDetailView.as_view(),
+        name="api_analytics_report_detail",
+    ),
+    path(
+        "supplier/analytics/purchase/",
+        analytics_views.AnalyticsReportPurchaseView.as_view(),
+        name="api_analytics_purchase",
+    ),
+    path(
+        "supplier/campaigns/",
+        campaign_views.CampaignListView.as_view(),
+        name="api_supplier_campaigns",
+    ),
+    path(
+        "supplier/campaigns/<int:pk>/",
+        campaign_views.CampaignDetailView.as_view(),
+        name="api_supplier_campaign_detail",
+    ),
+    path(
+        "supplier/campaigns/<int:pk>/hit/",
+        campaign_views.CampaignHitView.as_view(),
+        name="api_supplier_campaign_hit",
+    ),
+    path(
+        "sponsored-banner/",
+        campaign_views.SponsoredBannerView.as_view(),
+        name="api_sponsored_banner",
+    ),
+    path(
+        "sponsored-banner/<int:pk>/hit/",
+        campaign_views.SponsoredBannerHitView.as_view(),
+        name="api_sponsored_banner_hit",
+    ),
+    path(
+        "supplier/templates/extra/",
+        campaign_views.ExtraTemplatePurchaseView.as_view(),
+        name="api_extra_template",
+    ),
+    # ── Présence digitale (Meta + Google) ──────────────────────────────────
+    path(
+        "supplier/digital-presence/",
+        digital_views.SupplierDigitalPresenceView.as_view(),
+        name="api_supplier_digital_presence",
+    ),
+    path(
+        "supplier/digital-presence/connections/<int:pk>/",
+        digital_views.SupplierDigitalConnectionView.as_view(),
+        name="api_supplier_digital_connection",
+    ),
+    path(
+        "supplier/digital-presence/connections/<int:pk>/sync/",
+        digital_views.SupplierDigitalSyncView.as_view(),
+        name="api_supplier_digital_sync",
+    ),
+    path(
+        "supplier/digital-presence/<str:platform>/",
+        digital_views.SupplierDigitalPlatformView.as_view(),
+        name="api_supplier_digital_platform",
+    ),
+    path(
+        "supplier/digital-presence/<str:platform>/connect/",
+        digital_views.SupplierDigitalConnectView.as_view(),
+        name="api_supplier_digital_connect",
+    ),
+    path(
+        "supplier/digital-presence/<str:platform>/resources/",
+        digital_views.SupplierDigitalResourcesView.as_view(),
+        name="api_supplier_digital_resources",
+    ),
+    path(
+        "integrations/oauth/<str:provider>/callback/",
+        digital_views.DigitalOAuthCallbackView.as_view(),
+        name="api_digital_oauth_callback",
+    ),
+    path(
+        "admin/digital-presence/",
+        digital_views.AdminDigitalOverviewView.as_view(),
+        name="api_admin_digital_presence",
+    ),
+    path(
+        "admin/digital-presence/compare/",
+        digital_views.AdminDigitalCompareView.as_view(),
+        name="api_admin_digital_compare",
+    ),
+    path(
+        "admin/digital-presence/suppliers/<int:supplier_id>/",
+        digital_views.AdminDigitalSupplierView.as_view(),
+        name="api_admin_digital_supplier",
+    ),
+    # ── Pak-dating / consentement ──────────────────────────────────────────
+    path(
+        "supplier/pak-dating/",
+        consent_views.SupplierPakDatingListView.as_view(),
+        name="api_supplier_pak_dating",
+    ),
+    path(
+        "supplier/pak-dating/request/",
+        consent_views.PakDatingRequestView.as_view(),
+        name="api_pak_dating_request",
+    ),
+    path(
+        "consents/",
+        consent_views.BuyerConsentListView.as_view(),
+        name="api_buyer_consents",
+    ),
+    path(
+        "consents/<int:pk>/decide/",
+        consent_views.BuyerConsentDecideView.as_view(),
+        name="api_buyer_consent_decide",
+    ),
+    # ── Administration : rôles, tarifs, audit ──────────────────────────────
+    path(
+        "me/permissions/",
+        rbac_views.MyPermissionsView.as_view(),
+        name="api_my_permissions",
+    ),
+    path("admin/roles/", rbac_views.AdminRoleListView.as_view(), name="api_admin_roles"),
+    path(
+        "admin/role-grants/",
+        rbac_views.AdminRoleGrantView.as_view(),
+        name="api_admin_role_grants",
+    ),
+    path(
+        "admin/audit-log/",
+        rbac_views.AdminAuditLogView.as_view(),
+        name="api_admin_audit_log",
+    ),
+    path(
+        "admin/pricing/", rbac_views.AdminPricingView.as_view(), name="api_admin_pricing"
+    ),
+    path(
+        "admin/entitlements/",
+        rbac_views.AdminEntitlementView.as_view(),
+        name="api_admin_entitlements",
+    ),
+    path(
+        "admin/settings/",
+        rbac_views.AdminSettingsView.as_view(),
+        name="api_admin_settings",
+    ),
+    path(
+        "admin/pragmadinars/credit/",
+        rbac_views.AdminPragmadinarCreditView.as_view(),
+        name="api_admin_pragmadinars_credit",
+    ),
+    path(
+        "admin/pragmadinars/refund/",
+        rbac_views.AdminPragmadinarRefundView.as_view(),
+        name="api_admin_pragmadinars_refund",
+    ),
+    path("tender-calls/", views.TenderCallCreateView.as_view(), name="api_tender_calls"),
+    path(
+        "sourcing-requests/",
+        views.TenderCallCreateView.as_view(),
+        name="api_sourcing_requests",
+    ),
+    path("category-attributes/", views.CategoryAttributesView.as_view(), name="api_category_attributes"),
+    path("newsletter/", views.NewsletterView.as_view(), name="api_newsletter"),
+    path("supplier/dashboard/", views.SupplierDashboardView.as_view(), name="api_supplier_dashboard"),
+    path(
+        "supplier/market/",
+        views.SupplierMarketAnalysisView.as_view(),
+        name="api_supplier_market",
+    ),
+    path(
+        "supplier/market/category-benchmark/",
+        views.SupplierCategoryBenchmarkView.as_view(),
+        name="api_supplier_category_benchmark",
+    ),
+    path(
+        "supplier/market/dashboards/sessions/",
+        market_dashboard_views.MarketDashboardSessionsView.as_view(),
+        name="api_market_dashboard_sessions",
+    ),
+    path(
+        "supplier/market/dashboards/search/",
+        market_dashboard_views.MarketDashboardSearchView.as_view(),
+        name="api_market_dashboard_search",
+    ),
+    path(
+        "supplier/market/dashboards/visibility/",
+        market_dashboard_views.MarketDashboardVisibilityView.as_view(),
+        name="api_market_dashboard_visibility",
+    ),
+    path(
+        "supplier/market/dashboards/commercial/",
+        market_dashboard_views.MarketDashboardCommercialView.as_view(),
+        name="api_market_dashboard_commercial",
+    ),
+    path(
+        "supplier/market/dashboards/definitions/",
+        market_dashboard_views.MarketDashboardDefinitionsView.as_view(),
+        name="api_market_dashboard_definitions",
+    ),
+    path("search-tags/", views.SearchTagListView.as_view(), name="api_search_tags"),
+    path("supplier/products/meta/", views.SupplierProductFormMetaView.as_view(), name="api_supplier_product_meta"),
+    path("supplier/products/", views.SupplierProductsView.as_view(), name="api_supplier_products"),
+    path("supplier/products/<int:pk>/", views.SupplierProductDetailView.as_view(), name="api_supplier_product_detail"),
+    path("supplier/orders/", views.SupplierOrdersView.as_view(), name="api_supplier_orders"),
+    path("supplier/rfqs/", views.SupplierRfqsView.as_view(), name="api_supplier_rfqs"),
+    path(
+        "supplier/sample-requests/",
+        sample_views.SupplierSampleRequestListView.as_view(),
+        name="api_supplier_sample_requests",
+    ),
+    path(
+        "supplier/sample-requests/<int:pk>/status/",
+        sample_views.SupplierSampleRequestStatusView.as_view(),
+        name="api_supplier_sample_request_status",
+    ),
+    path(
+        "supplier/rfqs/<int:pk>/processing/",
+        views.SupplierRfqProcessingView.as_view(),
+        name="api_supplier_rfq_processing",
+    ),
+    path(
+        "supplier/rfqs/<int:pk>/respond/",
+        views.SupplierRfqRespondView.as_view(),
+        name="api_supplier_rfq_respond",
+    ),
+    path(
+        "supplier/orders/<int:pk>/respond/",
+        views.SupplierOrderRespondView.as_view(),
+        name="api_supplier_order_respond",
+    ),
+    path(
+        "supplier/orders/<int:pk>/outcome/",
+        views.SupplierOrderOutcomeView.as_view(),
+        name="api_supplier_order_outcome",
+    ),
+    path(
+        "supplier/orders/<int:pk>/status/",
+        views.SupplierOrderStatusView.as_view(),
+        name="api_supplier_order_status",
+    ),
+    path(
+        "supplier/orders/<int:pk>/amount/",
+        views.SupplierOrderAmountView.as_view(),
+        name="api_supplier_order_amount",
+    ),
+    path(
+        "supplier/orders/<int:pk>/archive/",
+        views.SupplierOrderArchiveView.as_view(),
+        name="api_supplier_order_archive",
+    ),
+    path(
+        "supplier/orders/<int:pk>/reopen/",
+        views.SupplierOrderReopenView.as_view(),
+        name="api_supplier_order_reopen",
+    ),
+    path(
+        "export-options/",
+        trade_views.ExportOptionsView.as_view(),
+        name="api_export_options",
+    ),
+    path(
+        "supplier/commissions/",
+        trade_views.SupplierCommissionListView.as_view(),
+        name="api_supplier_commissions",
+    ),
+    path(
+        "admin/commissions/",
+        trade_views.AdminCommissionListView.as_view(),
+        name="api_admin_commissions",
+    ),
+    path(
+        "admin/commissions/<int:pk>/",
+        trade_views.AdminCommissionDetailView.as_view(),
+        name="api_admin_commission_detail",
+    ),
+    path(
+        "admin/mandates/",
+        trade_views.AdminMandateListView.as_view(),
+        name="api_admin_mandates",
+    ),
+    path(
+        "admin/mandates/<int:pk>/",
+        trade_views.AdminMandateDetailView.as_view(),
+        name="api_admin_mandate_detail",
+    ),
+    path(
+        "proposals/quotes/<int:pk>/pdf/",
+        views.QuoteProposalPdfView.as_view(),
+        name="api_quote_proposal_pdf",
+    ),
+    path(
+        "proposals/quotes/<int:pk>/order-prefill/",
+        views.QuoteResponseOrderPrefillView.as_view(),
+        name="api_quote_response_order_prefill",
+    ),
+    path(
+        "proposals/quotes/<int:pk>/confirm-order/",
+        views.QuoteResponseConfirmOrderView.as_view(),
+        name="api_quote_response_confirm_order",
+    ),
+    path(
+        "proposals/orders/<int:pk>/pdf/",
+        views.OrderProposalPdfView.as_view(),
+        name="api_order_proposal_pdf",
+    ),
+    path("supplier/contacts/", views.SupplierContactsView.as_view(), name="api_supplier_contacts"),
+    path(
+        "supplier/favorites/",
+        views.SupplierFavoritesView.as_view(),
+        name="api_supplier_favorites",
+    ),
+    path(
+        "supplier/contacts/<int:buyer_id>/messages/",
+        views.SupplierContactMessagesView.as_view(),
+        name="api_supplier_contact_messages",
+    ),
+    path("buyer/profile/", views.BuyerProfileView.as_view(), name="api_buyer_profile"),
+    path(
+        "buyer/upgrade-supplier/",
+        views.BuyerUpgradeSupplierView.as_view(),
+        name="api_buyer_upgrade_supplier",
+    ),
+    path("supplier/profile/", views.SupplierProfileEditView.as_view(), name="api_supplier_profile"),
+    path("supplier/settings/", views.SupplierSettingsView.as_view(), name="api_supplier_settings"),
+    path("buyer/orders/", views.BuyerOrdersView.as_view(), name="api_buyer_orders"),
+    path(
+        "buyer/orders/<int:pk>/",
+        views.BuyerOrderDetailView.as_view(),
+        name="api_buyer_order_detail",
+    ),
+    path("buyer/contacts/", views.BuyerContactsView.as_view(), name="api_buyer_contacts"),
+    path(
+        "buyer/interest-subcategories/",
+        views.BuyerInterestSubcategoriesView.as_view(),
+        name="api_buyer_interest_subcategories",
+    ),
+    path("buyer/searches/", views.BuyerSearchHistoryView.as_view(), name="api_buyer_searches"),
+    path(
+        "buyer/searches/<int:pk>/",
+        views.BuyerSearchHistoryDetailView.as_view(),
+        name="api_buyer_search_detail",
+    ),
+    path("buyer/favorites/", views.BuyerFavoritesView.as_view(), name="api_buyer_favorites"),
+    path(
+        "buyer/favorites/products/",
+        views.BuyerProductFavoritesView.as_view(),
+        name="api_buyer_product_favorites",
+    ),
+    path(
+        "buyer/favorites/products/<int:product_id>/",
+        views.BuyerProductFavoriteDetailView.as_view(),
+        name="api_buyer_product_favorite_detail",
+    ),
+    path(
+        "buyer/favorites/<int:supplier_id>/",
+        views.BuyerFavoriteDetailView.as_view(),
+        name="api_buyer_favorite_detail",
+    ),
+    path("admin/events/meta/", admin_views.AdminEventsMetaView.as_view(), name="api_admin_events_meta"),
+    path("admin/events/", admin_views.AdminEventsListView.as_view(), name="api_admin_events"),
+    path(
+        "admin/intel/dashboard/",
+        admin_views.AdminIntelDashboardView.as_view(),
+        name="api_admin_intel_dashboard",
+    ),
+    path(
+        "admin/usage/dashboard/",
+        admin_views.AdminUsageDashboardView.as_view(),
+        name="api_admin_usage_dashboard",
+    ),
+    path(
+        "admin/commercial/dashboard/",
+        admin_views.AdminCommercialDashboardView.as_view(),
+        name="api_admin_commercial_dashboard",
+    ),
+    path(
+        "admin/support/conversations/",
+        admin_views.AdminSupportConversationsView.as_view(),
+        name="api_admin_support_conversations",
+    ),
+    path(
+        "admin/support/conversations/<int:pk>/",
+        admin_views.AdminSupportConversationDetailView.as_view(),
+        name="api_admin_support_conversation_detail",
+    ),
+    path(
+        "admin/support/conversations/<int:pk>/messages/",
+        admin_views.AdminSupportMessagesView.as_view(),
+        name="api_admin_support_messages",
+    ),
+    path(
+        "admin/users/",
+        admin_views.AdminPlatformUsersView.as_view(),
+        name="api_admin_platform_users",
+    ),
+    path(
+        "admin/impersonate/<int:user_id>/",
+        admin_views.AdminImpersonateView.as_view(),
+        name="api_admin_impersonate",
+    ),
+    path(
+        "admin/suppliers/",
+        admin_views.AdminSuppliersListView.as_view(),
+        name="api_admin_suppliers",
+    ),
+    path(
+        "admin/suppliers/<int:supplier_id>/",
+        admin_views.AdminSupplierManageView.as_view(),
+        name="api_admin_supplier_manage",
+    ),
+    path(
+        "admin/quote-demands/queue/",
+        admin_views.AdminQuoteDemandsQueueView.as_view(),
+        name="api_admin_quote_demands_queue",
+    ),
+    path(
+        "admin/quote-demands/<int:pk>/",
+        admin_views.AdminQuoteDemandQueueItemView.as_view(),
+        name="api_admin_quote_demand_queue_item",
+    ),
+    path("contact/", contact_views.PublicContactView.as_view(), name="api_public_contact"),
+    path("social-links/", contact_views.PublicSocialLinksView.as_view(), name="api_public_social_links"),
+    path("admin/social-links/", contact_views.AdminSocialLinksView.as_view(), name="api_admin_social_links"),
+    path("admin/contact-messages/", contact_views.AdminContactMessagesView.as_view(), name="api_admin_contact_messages"),
+    path(
+        "admin/contact-messages/<int:pk>/",
+        contact_views.AdminContactMessageDetailView.as_view(),
+        name="api_admin_contact_message_detail",
+    ),
+    path(
+        "support/conversation/",
+        admin_views.UserSupportConversationView.as_view(),
+        name="api_support_conversation",
+    ),
+    path(
+        "support/conversations/<int:pk>/messages/",
+        admin_views.UserSupportMessagesView.as_view(),
+        name="api_support_messages",
+    ),
+    path(
+        "notifications/summary/",
+        views.UserNotificationsSummaryView.as_view(),
+        name="api_notifications_summary",
+    ),
+    path(
+        "notifications/favorites-seen/",
+        views.SupplierFavoritesNotificationsSeenView.as_view(),
+        name="api_favorites_notifications_seen",
+    ),
+    path(
+        "notifications/orders-seen/",
+        views.OrdersNotificationsSeenView.as_view(),
+        name="api_orders_notifications_seen",
+    ),
+]

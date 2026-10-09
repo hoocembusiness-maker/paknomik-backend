@@ -1,0 +1,91 @@
+{% extends "base.html" %} {% load socialaccount %} {% load static %} {% block
+title %}Paknomik - Connect a Social Account{% endblock %} {% block
+start_container %}{% endblock %} {% block content %}
+<div style="display: flex">
+  <!-- Left half: branding -->
+  <div class="left_half">
+    <a href="{% url 'home' %}">
+      <img src="/static/images/white_brand.png" class="logo_img" />
+    </a>
+    <img
+      src="/static/images/paknomik_lineup.png"
+      style="height: 20vw; border-radius: 1vw"
+    />
+  </div>
+
+  <!-- Right half: connection form -->
+  <div class="right_half">
+    <div class="first_action">
+      <a
+        href="{% url 'account_logout' %}"
+        class="auth-button signup"
+        style="padding-left: 3vw; padding-right: 3vw"
+      >
+        Logout
+      </a>
+    </div>
+
+    <div style="text-align: center; width: 100%">
+      <p class="wellcome_text">Connect a New Account</p>
+    </div>
+
+    <div class="seperator">
+      <span
+        style="
+          background-color: #faf8ff;
+          color: #1e1a2f;
+          font-family: Quicksand;
+          font-size: 15px;
+          left: 50%;
+          padding: 0 8px;
+          position: absolute;
+          top: 50%;
+          transform: translate(-50%, -50%);
+        "
+      >
+        Connect {{ provider.name }}
+      </span>
+    </div>
+
+    <form method="post" action="{% url 'socialaccount_login' %}">
+      {% csrf_token %}
+
+      <!-- Display form errors -->
+      {% if form.errors %}
+      <div class="error-messages" style="margin: 0 3vw">
+        {% for field, errors in form.errors.items %} {% for error in errors %}
+        <p class="small_warning_message">{{ error }}</p>
+        {% endfor %} {% endfor %}
+      </div>
+      {% endif %}
+
+      <div class="paknomik_login">
+        <div style="text-align: center; margin: 2vw 0">
+          <p>
+            You are about to connect your {{ provider.name }} account to your
+            existing account.
+          </p>
+          <p>Are you sure you want to continue?</p>
+        </div>
+
+        <div class="last_action" style="justify-content: center; gap: 2vw">
+          <button
+            type="submit"
+            class="auth-button signup"
+            style="padding-left: 2vw; padding-right: 2vw"
+          >
+            Continue
+          </button>
+          <a
+            href="{% url 'home' %}"
+            class="auth-button login"
+            style="padding-left: 2vw; padding-right: 2vw; text-decoration: none"
+          >
+            Cancel
+          </a>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

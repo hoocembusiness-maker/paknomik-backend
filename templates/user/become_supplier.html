@@ -1,0 +1,137 @@
+{% extends "user/base_auth.html" %}
+{% load static %}
+
+{% block title %}Paknomik - Become a Supplier{% endblock %}
+
+{% block content %}
+<div style="padding: 20px; max-width: 800px; margin: 0 auto;">
+  
+  <!-- Header with back link -->
+  <div class="add_supplier_header">
+    <h1 class="become_supplier">Become a Supplier</h1>
+  </div>
+
+  <!-- Info Box -->
+  <div class="dashboard-card under_become_supplier" style="margin-bottom: 30px; background: linear-gradient(135deg, #f0eaff, #fff);">
+    <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+      <div style="background: #6c3b9e; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+        <i class="fas fa-store" style="font-size: 24px; color: white;"></i>
+      </div>
+      <div>
+        <h3 style="margin: 0; color: #2a2142;">List your packaging products</h3>
+        <p style="margin: 5px 0 0; color: #666;">Reach thousands of buyers looking for packaging solutions</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Supplier Registration Form -->
+  <div class="dashboard-card">
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="paknomik_login">
+        {% for field in form %}
+          <div class="form-group">
+            <label class="form-label">
+              {{ field.label }}
+              {% if field.field.required %}<span style="color: red;">*</span>{% endif %}
+            </label>
+            {{ field }}
+            {% if field.help_text %}
+              <div class="help-text">{{ field.help_text }}</div>
+            {% endif %}
+            {% if field.errors %}
+              <ul class="errorlist">
+                {% for error in field.errors %}
+                  <li>{{ error }}</li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+          </div>
+        {% endfor %}
+        
+        <!-- Submit Button -->
+        <div class="login-actions" style=" margin-top: 30px;justify-content : center">
+          <button type="submit" class="auth-button signup register" style="width:80%">
+            <i class="fas fa-check-circle"></i> Register as Supplier
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- Additional Info -->
+  <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 16px; text-align: center;">
+    <i class="fas fa-question-circle" style="font-size: 32px; color: #6c3b9e;"></i>
+    <h4 style="margin: 10px 0;">Why become a supplier on Paknomik?</h4>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
+      <div>
+        <i class="fas fa-chart-line" style="color: #6c3b9e;"></i>
+        <p style="margin: 5px 0 0;">Increase your visibility</p>
+      </div>
+      <div>
+        <i class="fas fa-handshake" style="color: #6c3b9e;"></i>
+        <p style="margin: 5px 0 0;">Connect with qualified buyers</p>
+      </div>
+      <div>
+        <i class="fas fa-tachometer-alt" style="color: #6c3b9e;"></i>
+        <p style="margin: 5px 0 0;">Grow your business</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .dashboard-card {
+    background: white;
+    border-radius: 20px;
+    padding: 24px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e9e2fc;
+    transition: transform 0.2s;
+  }
+  .dashboard-card:hover {
+    transform: translateY(-2px);
+  }
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+  .form-label {
+    display: block;
+    font-family: Quicksand;
+    font-weight: 600;
+    color: #2a2142;
+    margin-bottom: 0.5rem;
+  }
+  .auth-input, .auth-select, .auth-textarea {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #e9e2fc;
+    border-radius: 12px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    transition: all 0.3s ease;
+  }
+  .auth-input:focus, .auth-select:focus, .auth-textarea:focus {
+    border-color: #6c3b9e;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(108, 59, 158, 0.1);
+  }
+  .errorlist {
+    list-style: none;
+    padding: 0;
+    margin: 5px 0 0;
+    color: #dc3545;
+    font-size: 12px;
+  }
+  .help-text {
+    font-size: 12px;
+    color: #6c757d;
+    margin-top: 5px;
+  }
+  @media (max-width: 768px) {
+    .dashboard-card {
+      padding: 16px;
+    }
+  }
+</style>
+{% endblock %}

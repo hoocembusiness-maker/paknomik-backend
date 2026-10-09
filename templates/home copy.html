@@ -1,0 +1,89 @@
+{% extends "base.html" %} {% block title %}Paknomik{% endblock %}
+<!-- -->
+{%block content %}
+<div class="section" style="text-align: center">
+
+        <h1 class="tagline">All PACKAGINGS, One PLACE.</h1>
+      
+    </div>
+    {% if user.is_authenticated %}
+    {% if  user.is_verified_client  %}    
+
+     <div class="market_layer">
+            <button class="supplier">Browse Suppliers</button>
+            <button class="customer">Qoute Request</button>
+    </div>
+    {% else %}
+    
+    <div class="market_layer">
+            <button class="supplier" onclick="window.location.href={% url 'become_supplier' %}">Packaging Supplier</button>
+            <button class="customer" onclick="window.location.href={% url 'complete_profile' %}" >Packaging Customer</button>
+    </div>
+    {% endif %}
+    {% endif %}
+
+    <div class="section">
+        <div class="card_paknomik" style="margin-top: 2vw">
+                <div class="hero-stats">
+                <div class="stat-item"><h3>2K+</h3><p>Products</p></div>
+                <div class="stat-item"><h3>90+</h3><p>Suppliers</p></div>
+                <div class="stat-item"><h3>100%</h3><p>Trustfull</p></div>
+                <div class="stat-item"><h3>24h/7</h3><p>Support</p></div>
+                </div>
+        </div>
+    </div>
+    <p class="tagline" style="font-size: 1.2rem;margin-top: 3vw">Browse Packaging Categories</p>
+    
+{% if is_pair %}
+    {% for category in catego %}   <!-- Use lowercase variable name (by convention) -->
+    <div class="grid_row">
+        <div class="card_paknomik" onclick="location.href='{% url "catego" category.0.id %}'">
+            <img src="{{ category.0.main_picture.url }}" class="catego_img" />   
+            <div class="title_container">
+                <h3 class="category_name">{{ category.0.name }}</h3>
+            </div>
+        </div>   
+        <div class="card_paknomik" onclick="location.href='{% url "catego" category.1.id %}'">
+            <img src="{{ category.1.main_picture.url }}" class="catego_img" />   
+            <div class="title_container">
+                <h3 class="category_name">{{ category.1.name }}</h3>
+            </div>
+        </div>   
+    </div>
+    {% endfor %}
+{% else %}
+        {% for category in catego %}   <!-- Use lowercase variable name (by convention) -->
+    <div class="grid_row" >
+        <div class="card_paknomik"  onclick="location.href='{% url "catego"  category.0.id %}'">
+            <img src="{{ category.0.main_picture.url }}" class="catego_img" />   
+            <div class="title_container">
+                <h3 class="category_name">{{ category.0.name }}</h3>
+            </div>
+        </div>  
+        <div class="card_paknomik"  onclick="location.href='{% url "catego" category.1.id %}'">
+            <img src="{{ category.1.main_picture.url }}" class="catego_img" />   
+            <div class="title_container">
+                <h3 class="category_name">{{ category.1.name }}</h3>
+            </div>
+        </div>  
+    </div>
+    {% endfor %}
+    <div class="grid_row"    onclick="location.href='{% url "catego" 0 %}'">
+        <div class="card_paknomik">
+            <img src="{{ last_catego.main_picture.url }}" class="catego_img" />   
+            <div class="title_container">
+                <h3 class="category_name">{{ last_catego.name }}</h3>
+            </div>
+        </div>   
+    </div>
+{% endif %}
+
+{% endblock %}
+ 
+</div>
+
+<script>
+    function go_to_catego(id){
+
+    }
+</script>

@@ -1,0 +1,111 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Paknomik</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+
+  <body>
+    <header class="header">
+      <div class="logo">
+        <img src="/static/images/brand.png" alt="Paknomik" />
+      </div>
+      <div class="search_bar_nav">
+        <div class="search-bar">
+          <input type="text" placeholder="Paper Bag for Bakery" />
+          <button>
+            <img style="height: 30px" src="/static/images/search_btn.png" />
+          </button>
+        </div>
+
+        <nav class="nav">
+          <a href="#">About</a>
+          <a href="#">Products</a>
+          <a href="#">Partners</a>
+          <a href="#">Pricing</a>
+          <a href="#">Performance</a>
+        </nav>
+      </div>
+      <div class="auth-buttons">
+        <button class="signup">Sign up</button>
+        <button class="login">Login</button>
+      </div>
+    </header>
+
+    <section class="hero">
+      <h1>All PACKAGINGS, One PLACE.</h1>
+
+      <div class="cta-buttons">
+        <button class="supplier">Packaging Supplier</button>
+        <button class="customer">Packaging Customer</button>
+      </div>
+
+      <p class="description">
+        Paknomik is Technical and commercial partner of packaging manufacturers,
+        by strengthening their online visibility nationally and opening doors to
+        new international markets.
+      </p>
+    </section>
+    <div class="super_footer">
+      <div class="product-image">
+        <img src="/static/images/line_up.png" alt="Packaging products" />
+      </div>
+
+      <footer class="footer">
+        <div class="footer-content">
+          <div class="copyright">
+            © 2025 EURL PRAGMATIC <br />
+            Privacy policy <br />
+            Terms of use
+          </div>
+
+          <div class="links">
+            <a href="#">About</a>
+            <a href="#">Teams</a>
+            <a href="#">Media</a>
+          </div>
+
+          <div class="links">
+            <a href="#">Catalogue</a>
+            <a href="#">Suppliers</a>
+            <a href="#">Market Study</a>
+          </div>
+
+          <div class="logo-footer">
+            <img src="/static/images/logo_name_white.png" />
+          </div>
+
+          <div class="links">
+            <a href="#">Customers</a>
+            <a href="#">Service Providers</a>
+            <a href="#">Logistics</a>
+          </div>
+
+          <div class="links">
+            <a href="#">Marketing</a>
+            <a href="#">Finance</a>
+            <a href="#">Manufactoring</a>
+          </div>
+
+          <div class="social">
+            <p>Follow us</p>
+            <div class="icons">
+              <i>IG</i>
+              <i>IN</i>
+              <i>FB</i>
+              <i>TW</i>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
+  </body>
+</html>

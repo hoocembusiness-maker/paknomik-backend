@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <title>{{ hero_title }} — {{ product_name }}</title>
+  <style>
+{% include "user/pdf/_paknomik_page_css.html" %}
+    body {
+      font-family: Helvetica, Arial, sans-serif;
+      font-size: 10.5pt;
+      color: {{ body_text_color }};
+      line-height: 1.5;
+      margin: 0;
+      padding: 0;
+      background-color: {{ page_bg }};
+    }
+    table.brand-row { width: 100%; margin-bottom: 12px; }
+    table.brand-row td { vertical-align: middle; border: none; padding: 0; }
+    td.brand-logo-cell { width: 160px; }
+    .brand-name {
+      font-size: 20pt;
+      font-weight: bold;
+      color: {{ brand_ink_color }};
+      text-align: right;
+      line-height: 1.15;
+    }
+    table.pak-hero { width: 100%; margin: 0 0 14px 0; }
+    td.pak-hero-cap { width: 30px; padding: 0; border: none; line-height: 0; }
+    td.pak-hero-mid {
+      background-color: {{ brand_color }};
+      color: {{ brand_text_color }};
+      text-align: center;
+      vertical-align: middle;
+      font-size: 15pt;
+      font-weight: bold;
+      height: 44px;
+      padding: 0 10px;
+    }
+    table.pak-pill { margin: 0 0 4px 0; -pdf-keep-with-next: true; }
+    td.pak-pill-cap { width: 22px; padding: 0; border: none; line-height: 0; }
+    td.pak-pill-mid {
+      background-color: {{ brand_color }};
+      color: {{ brand_text_color }};
+      font-size: 10pt;
+      font-weight: bold;
+      padding: 5px 10px;
+      vertical-align: middle;
+    }
+    table.product-intro { width: 100%; margin: 0 0 14px 0; }
+    table.product-intro td { vertical-align: top; padding: 0; }
+    td.product-image-cell { padding-right: 16px; }
+    td.product-info-cell { padding-left: 4px; }
+    .product-title {
+      font-size: 16pt;
+      font-weight: bold;
+      color: {{ brand_ink_color }};
+      line-height: 1.2;
+      margin: 0 0 4px 0;
+    }
+    .product-category { font-size: 10pt; color: #4c4170; margin: 0 0 10px 0; }
+    .info-line { margin: 0 0 6px 0; font-size: 9.5pt; }
+    .info-label { font-weight: bold; }
+    .pdf-section { margin-bottom: 16px; }
+    .section-body { padding-left: 4px; }
+    .block-text { margin: 0 0 8px 0; }
+    .desc-title, .rich-text h3 {
+      margin: 10px 0 6px 0; font-size: 13pt; font-weight: bold; -pdf-keep-with-next: true;
+    }
+    .desc-subtitle, .rich-text h4 {
+      margin: 8px 0 4px 0; font-size: 11pt; font-weight: bold;
+      color: {{ brand_ink_color }}; -pdf-keep-with-next: true;
+    }
+    .desc-list, .rich-text ul, .rich-text ol { margin: 0 0 8px 0; padding-left: 18px; }
+    .desc-list li, .rich-text li { margin-bottom: 3px; }
+    table.specs { width: 100%; }
+    table.specs td {
+      padding: 6px 4px;
+      border-bottom: 1px solid #cfc3e6;
+      vertical-align: top;
+    }
+    td.spec-label { width: 42%; color: #4c4170; }
+    td.spec-value { font-weight: bold; text-align: right; }
+  </style>
+</head>
+<body>
+{% include "user/pdf/_paknomik_page_chrome.html" %}
+
+  <table class="brand-row">
+    <tr>
+      <td class="brand-logo-cell">
+        {% if supplier_logo %}
+          <img src="{{ supplier_logo.uri }}" width="{{ supplier_logo.width }}" height="{{ supplier_logo.height }}" alt=""/>
+        {% endif %}
+      </td>
+      <td>
+        <div class="brand-name">{{ supplier_name }}</div>
+      </td>
+    </tr>
+  </table>
+
+  {{ hero_html|safe }}
+
+  <table class="product-intro">
+    <tr>
+      {% if product_image %}
+      <td class="product-image-cell" width="{{ product_image.width|add:16 }}">
+        <img src="{{ product_image.uri }}" width="{{ product_image.width }}" height="{{ product_image.height }}" alt=""/>
+      </td>
+      {% endif %}
+      <td class="product-info-cell">
+        <p class="product-title">{{ product_name }}</p>
+        {% if category_name %}
+        <p class="product-category">{{ category_name }}</p>
+        {% endif %}
+        <p class="info-line"><span class="info-label">Fournisseur :</span> {{ supplier_name }}</p>
+        {% if markets %}
+        <p class="info-line"><span class="info-label">Marchés ciblés :</span> {{ markets|join:", " }}</p>
+        {% endif %}
+        {% if supplier_phone %}
+        <p class="info-line"><span class="info-label">Téléphone :</span> {{ supplier_phone }}</p>
+        {% endif %}
+        {% if supplier_email %}
+        <p class="info-line"><span class="info-label">E-mail :</span> {{ supplier_email }}</p>
+        {% endif %}
+        {% if supplier_website %}
+        <p class="info-line"><span class="info-label">Site web :</span> {{ supplier_website }}</p>
+        {% endif %}
+      </td>
+    </tr>
+  </table>
+
+  {% if description %}
+  <div class="pdf-section">
+    <div class="section-body">
+      {{ description }}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if spec_rows %}
+  <div class="pdf-section">
+    {{ pill_html_specs|safe }}
+    <table class="specs">
+      {% for row in spec_rows|slice:":3" %}
+      <tr>
+        <td class="spec-label">{{ row.label }}</td>
+        <td class="spec-value">{{ row.value }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% if spec_rows|length > 3 %}
+    <table class="specs">
+      {% for row in spec_rows|slice:"3:" %}
+      <tr>
+        <td class="spec-label">{{ row.label }}</td>
+        <td class="spec-value">{{ row.value }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% endif %}
+  </div>
+  {% endif %}
+</body>
+</html>

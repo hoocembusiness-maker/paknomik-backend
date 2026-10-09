@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+<!-- -->
+{% load socialaccount %}
+<!-- -->
+{% block title %}Paknomik - Sign up{% endblock %}
+<!-- -->
+{% load static %}
+<!-- -->
+{% block other_style_sheet %} {% endblock %}
+
+<!-- -->
+
+{% block start_container%} {% endblock %} {%block content %}
+<!-- -->
+{% load socialaccount %} {% load static %} {%block header %} {% endblock %}
+<!-- -->
+<div style="display: flex">
+  <div class="left_half">
+    <a href="{% url 'home' %}">
+      <img src="/static/images/white_brand.png" class="logo_img" />
+    </a>
+    <!-- -->
+    <img
+      src="/static/images/paknomik_lineup.png"
+      style="height: 20vw; border-radius: 1vw"
+      class="showcase_1"
+    />
+    <!-- -->
+  </div>
+  <div class="right_half">
+    <!-- -->
+    <div class="responsive_logo">
+      <a href="{% url 'home' %}">
+        <img src="/static/images/colored_brand.png" class="logo_img" />
+      </a>
+    </div>
+    <div class="first_action">
+      <a
+        href="{% url 'account_login' %}"
+        class="auth-button signup"
+        style="padding-left: 3vw; padding-right: 3vw"
+        >Login</a
+      >
+    </div>
+    <!-- -->
+    <div style="width: 100%">
+      <p class="wellcome_text_2">Sign up using :</p>
+    </div>
+    <!-- -->
+    <div class="social_log">
+      <!--  GOOGLE -->
+      <a
+        href="/api/auth/google/?redirect=/"
+        class="auth-button signup social_sign"
+        style="background: #34a853"
+        ><i
+          style="margin-right: 1vw"
+          class="fab fa-google icon_social_media"
+        ></i
+        >Google</a
+      >
+      <a
+        href="{% provider_login_url 'linkedin'  %}"
+        class="auth-button signup social_sign"
+        style="background: #0077b5"
+        ><i style="margin-right: 1vw" class="fab fa-linkedin icon_social_media">
+        </i
+        >LinkedIn</a
+      >
+      <!--  LIKDANA -->
+    </div>
+    <!-- -->
+    <div class="seperator">
+      <span
+        style="
+          background-color: #faf8ff;
+          color: #1e1a2f;
+          font-family: Quicksand;
+          font-size: 15px;
+          left: 50%;
+          padding: 0 8px;
+          position: absolute;
+
+          top: 50%;
+          transform: translate(-50%, -50%);
+        "
+        >OR</span
+      >
+    </div>
+    <!-- -->
+    <form method="post" action="{% url 'account_signup' %}">
+      {% csrf_token %}
+
+      <!-- Display all validation errors -->
+      {% if form.errors %}
+      <div class="error-messages" style="margin: 0 3vw">
+        {% for field, errors in form.errors.items %} {% for error in errors %}
+        <p class="small_warning_message">{{ error }}</p>
+        {% endfor %} {% endfor %}
+      </div>
+      {% endif %}
+      <!-- start form -->
+      <div class="paknomik_login">
+        <input id="username" placeholder="Username" name="username" />
+        <p id="no_username" class="small_warning_message">
+          You must type a username
+        </p>
+        <input id="email" name="email" placeholder="Email" type="Email" />
+        <p id="no_email" class="small_warning_message">
+          You must type an email
+        </p>
+        <div class="pw_input_container_login">
+          <input
+            class="pass_input"
+            id="password"
+            name="password1"
+            type="password"
+            placeholder="Password"
+            style="flex: 1"
+          />
+          <button
+            class="btn btn-default"
+            style="
+              color: #6c3b9e;
+              font-weight: 500;
+              background-color: transparent;
+              border: 0;
+              font-size: 1.2rem;
+              width: 4vw;
+              margin-top: 1.2vw;
+            "
+            type="button"
+            onClick="hide_password_1()"
+          >
+            <i class="fa fa-eye" aria-hidden="true"></i>
+          </button>
+        </div>
+        <p id="pass_length" class="small_warning_message">
+          Your password must contain at least 8 caracters!
+        </p>
+        <div class="pw_input_container_login">
+          <input
+            class="pass_input"
+            id="password_confirmed"
+            type="password"
+            name="password2"
+            placeholder="Confirm Password"
+            style="flex: 1"
+          />
+          <button
+            class="btn btn-default"
+            style="
+              color: #6c3b9e;
+              font-weight: 500;
+              background-color: transparent;
+              border: 0;
+              font-size: 1.2rem;
+              width: 4vw;
+              margin-top: 1.2vw;
+            "
+            type="button"
+            onClick="hide_password_2()"
+          >
+            <i class="fa fa-eye" aria-hidden="true"></i>
+          </button>
+        </div>
+        <p id="pass_match" class="small_warning_message">
+          Password and Confirmed password do not match!
+        </p>
+        <br />
+        <div class="last_action">
+          <button
+            class="auth-button signup"
+            style="
+              padding-left: 1vw;
+              padding-right: 1vw;
+              font-size: 1.2rem;
+              width: 10vw;
+            "
+            type="submit"
+          >
+            Register
+          </button>
+        </div>
+      </div>
+
+      <!-- end form -->
+    </form>
+  </div>
+</div>
+<script>
+  const pass = document.getElementById("password");
+  const passLengthMsg = document.getElementById("pass_length");
+  const pass_confirm = document.getElementById("password_confirmed");
+  const pass_match = document.getElementById("pass_match");
+
+  function validatePasswordLength() {
+    // Only hide the message if the field is not focused AND length >= 8
+    if (
+      document.activeElement !== pass &&
+      pass.value.length < 8 &&
+      pass.value.length > 0
+    ) {
+      passLengthMsg.style.display = "inline";
+      console.log("display == inline");
+    } else {
+      passLengthMsg.style.display = "none";
+      console.log("display == none");
+    }
+  }
+
+  function validatePasswordMatch() {
+    if (pass.value != pass_confirm.value) {
+      pass_match.style.display = "inline";
+      console.log("pass confirm inline");
+    } else {
+      pass_match.style.display = "none";
+      console.log("pass confirm none");
+    }
+  }
+
+  // Run validation when the field loses focus
+  pass.addEventListener("blur", validatePasswordLength);
+
+  // Also run validation while typing (optional, but user-friendly)
+  pass.addEventListener("input", validatePasswordLength);
+
+  pass_confirm.addEventListener("blur", validatePasswordMatch);
+  pass_confirm.addEventListener("input", validatePasswordMatch);
+</script>
+
+{% endblock %}
+<!-- -->
+{%block footer %} {% endblock %} {% block end_container%} {% endblock %}

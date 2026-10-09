@@ -1,0 +1,74 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <link href="https://fonts.googleapis.com" rel="stylesheet" />
+    <title>Paknomik</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+    />
+    <link rel="stylesheet" href="{% static 'css/style_exported.css' %}" />
+    <script src="{% static 'js/main.js' %}"></script>
+  </head>
+  <body>
+    <!-- Footer -->
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h4>PAKNOMIK</h4>
+        <p>Somewhere in algérie, st223</p>
+        <p>contact@paknomik.dz</p>
+        <p>contact_paknomik@pragma.dz</p>
+        <p>00 213 699 398 988</p>
+      </div>
+      <div class="footer-col">
+        <h4>Quick links</h4>
+        <a href="#">Media</a>
+        <a href="#">Categories</a>
+        <a href="#">Suppliers</a>
+        <a href="#">Industries</a>
+        <a href="#">Pricing</a>
+        <a href="#">About</a>
+      </div>
+      <div class="footer-col">
+        <h4>Legal</h4>
+        <a href="#">Privacy policy</a>
+        <a href="#">Terms of use</a>
+      </div>
+    </div>
+
+    <div class="newsletter">
+      <i class="fas fa-envelope-open-text" style="font-size: 2rem"></i>
+      <h3 style="margin: 16px 0 8px">SUBSCRIBE TO OUR NEWSLETTER</h3>
+      <p>
+        Get weekly Packaging Market insights, new product listings, and business
+        tips.
+      </p>
+      <div style="margin-top: 20px"> <div style="margin-top: 20px;">
+            <input class="newsletter_input" id="email" name="login" placeholder="Email" />
+            <button class="auth-button signup" id="subscribeNewsBtn" style="margin-top:0.7vw">Subscribe</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="copyright">
+      © 2025 EURL PRAGMA — Privacy policy · Terms of use
+    </div>
+    <!-- Footer -->
+
+    <script>
+      //heightListener();
+      console.log("hight-------------");
+      // Listen for window resize, not "height"
+      //window.addEventListener("resize", heightListener);
+    </script>
+  </body>
+</html>

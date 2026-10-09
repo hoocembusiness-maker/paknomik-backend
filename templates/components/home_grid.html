@@ -1,0 +1,98 @@
+{% extends "base copy.html" %}
+<!-- -->
+{% block title %}Paknomik - Home{% endblock %}
+<!-- -->
+{%block content %}
+<h1 class="hero">All PACKAGINGS, One PLACE.</h1>
+
+<!-- Button row -->
+<div
+  class="row container-fluid"
+  style="margin-left: 15%; margin-right: 15%; margin-top: 2%"
+>
+  <div class="col-6 col-md-6 btn_home_parent">
+    <button
+      type="button"
+      class="btn font_1 btn_home primary"
+      style="width: 80%"
+    >
+      Packaging Supplier
+    </button>
+  </div>
+  <div class="col-6 col-md-6 btn_home_parent">
+    <button type="button" class="btn font_1 btn_home secondary">
+      Packaging Customer
+    </button>
+  </div>
+</div>
+
+<p class="home_grid_title">Explore the Packaging Market with PRAGMADINARMIK</p>
+
+<!-- GRID -->
+<div class="container">
+  <div class="row">
+    <div class="col-6 col-md-3">
+      <!-- card -->
+      <div class="card home_grid_item">
+        <img
+          class="card-img-top"
+          src="/static/images/grid/bags.png"
+          alt="Card image cap"
+          style="width: 100%"
+        />
+        <div class="card-body">
+          <h4 class="home_grid_title">Paper Bags</h4>
+        </div>
+      </div>
+      <!-- card -->
+    </div>
+    <div class="col-6 col-md-3">
+      <!-- card -->
+      <div class="card home_grid_item">
+        <img
+          class="card-img-top"
+          src="/static/images/grid/flexpak.png"
+          style="width: 100%"
+          alt="Card image cap"
+        />
+        <div class="card-body">
+          <h4 class="home_grid_title">Flexible Packaging</h4>
+        </div>
+      </div>
+      <!-- card -->
+    </div>
+    <div class="col-6 col-md-3">
+      <!-- card -->
+      <div class="card home_grid_item">
+        <img
+          style="width: 100%"
+          class="card-img-top"
+          src="/static/images/grid/cans.png"
+          alt="Card image cap"
+        />
+        <div class="card-body">
+          <h4 class="card-title home_grid_title">Cans</h4>
+        </div>
+      </div>
+      <!-- card -->
+    </div>
+    <div class="col-6 col-md-3">
+      <!-- card -->
+      <div class="card home_grid_item">
+        <img
+          style="width: 100%"
+          class="card-img-top"
+          src="/static/images/grid/jars.png"
+          alt="Card image cap"
+        />
+        <div class="card-body">
+          <h4 class="card-title home_grid_title">Jars</h4>
+        </div>
+      </div>
+      <!-- card -->
+    </div>
+  </div>
+</div>
+<!-- GRID -->
+
+{% endblock %}

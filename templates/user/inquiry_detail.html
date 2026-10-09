@@ -1,0 +1,19 @@
+{% extends "user/base_auth.html" %}
+{% block title %}Inquiry Detail{% endblock %}
+{% block content %}
+<div style="padding: 20px;">
+  <h1>{{ inquiry.subject }}</h1>
+  <p>{{ inquiry.message }}</p>
+  <h2>Messages</h2>
+  {% for msg in messages %}
+    <div><strong>{{ msg.sender.email }}:</strong> {{ msg.message }}</div>
+  {% empty %}
+    <p>No messages yet.</p>
+  {% endfor %}
+  <form method="post" style="margin-top: 16px;">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="auth-button signup">Send</button>
+  </form>
+</div>
+{% endblock %}

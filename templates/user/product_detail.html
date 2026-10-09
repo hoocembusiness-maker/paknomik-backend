@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Product Detail{% endblock %}
+{% block content %}
+<section class="market-page">
+  <form method="get" action="{% url 'search' %}" class="market-search-bar compact">
+    <input type="text" name="query" value="{{ product.name }}" />
+    <button type="submit" class="signup"><i class="fas fa-search"></i></button>
+  </form>
+
+  <div class="market-filters">
+    <select><option>Category</option></select>
+    <select><option>Industry</option></select>
+    <select><option>Quantity</option></select>
+    <select><option>Dimensions</option></select>
+    <select><option>Delivery Time</option></select>
+    <select><option>Material</option></select>
+    <select><option>More +</option></select>
+  </div>
+
+  <h2 class="page-subtitle">{{ product.name }}</h2>
+
+  <div class="product-layout">
+    <div class="product-gallery">
+      {% if product.primary_image %}
+        <img src="{{ product.primary_image.url }}" alt="{{ product.name }}" class="main-product-image" />
+      {% endif %}
+    </div>
+
+    <div class="product-info-panel">
+      <div class="supplier-line">
+        <a href="{% url 'supplier_detail' product.supplier.id %}">{{ product.supplier.company_name }}</a>
+      </div>
+      <div class="price-pill">{{ product.price|default:"--" }} dzd</div>
+      <p class="product-meta-line">Quantite minimale : {{ product.min_order_quantity }} piece</p>
+
+      <h3>Fiche Technique</h3>
+      <table class="spec-table">
+        <tr><td>MOQ</td><td>{{ product.min_order_quantity }} units</td><td>Material</td><td>{{ product.material.name }}</td></tr>
+        <tr><td>Delivery</td><td>{{ product.lead_time_days }} days</td><td>Type</td><td>{{ product.form.name }}</td></tr>
+        <tr><td>Brand name</td><td>{{ product.supplier.company_name }}</td><td>Product</td><td>{{ product.name }}</td></tr>
+      </table>
+      <p>{{ product.description }}</p>
+      <div class="card-actions">
+        <a class="signup" href="#">Commander</a>
+        <a class="login" href="{% url 'compare_products' %}?ids={{ product.id }}">Comparer</a>
+        <a class="login" href="{% url 'contact_supplier' product.supplier.id %}?product_id={{ product.id }}">Contacter</a>
+      </div>
+    </div>
+  </div>
+
+  {% if similar_products %}
+    <h3 class="page-subtitle">Autres recommandations pour votre requete</h3>
+    <div class="mini-reco-grid">
+      {% for item in similar_products %}
+        <a href="{% url 'product_detail' item.id %}" class="mini-reco-card">
+          {% if item.primary_image %}
+            <img src="{{ item.primary_image.url }}" alt="{{ item.name }}" />
+          {% endif %}
+          <span>{{ item.name }}</span>
+        </a>
+      {% endfor %}
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

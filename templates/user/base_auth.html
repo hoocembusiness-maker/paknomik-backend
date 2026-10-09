@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% load static %}
+{% load socialaccount %}
+
+{% block other_style_sheet %}
+<style>
+    /* Additional auth-specific styles */
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    .form-label {
+        display: block;
+        font-family: Quicksand;
+        font-weight: 600;
+        color: #2a2142;
+        margin-bottom: 0.5rem;
+    }
+    .auth-input, .auth-select, .auth-textarea {
+        width: 100%;
+        padding: 12px 16px;
+        border: 2px solid #e9e2fc;
+        border-radius: 12px;
+        font-family: 'Inter', sans-serif;
+        font-size: 14px;
+        transition: all 0.3s ease;
+    }
+    .auth-input:focus, .auth-select:focus, .auth-textarea:focus {
+        border-color: #6c3b9e;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(108, 59, 158, 0.1);
+    }
+    .auth-select {
+        background-color: white;
+        cursor: pointer;
+    }
+    .auth-textarea {
+        resize: vertical;
+    }
+    .errorlist {
+        list-style: none;
+        padding: 0;
+        margin: 5px 0 0;
+        color: #dc3545;
+        font-size: 12px;
+    }
+    .help-text {
+        font-size: 12px;
+        color: #6c757d;
+        margin-top: 5px;
+    }
+    .dashboard-card {
+        background: white;
+        border-radius: 20px;
+        padding: 24px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e9e2fc;
+        transition: transform 0.2s;
+    }
+    .dashboard-card:hover {
+        transform: translateY(-5px);
+    }
+    .stat-number {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #6c3b9e;
+    }
+    .stat-label {
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+    .warning-box {
+        background: #fff3cd;
+        border: 1px solid #ffecb5;
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+        margin: 20px 0;
+    }
+    .rank-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    .rank-gold {
+        background: linear-gradient(135deg, #ffd700, #ffb347);
+        color: #fff;
+    }
+    .rank-silver {
+        background: linear-gradient(135deg, #c0c0c0, #a8a8a8);
+        color: #fff;
+    }
+    .rank-bronze {
+        background: linear-gradient(135deg, #cd7f32, #b87333);
+        color: #fff;
+    }
+    .rank-standard {
+        background: #e9e2fc;
+        color: #6c3b9e;
+    }
+</style>
+{% endblock %}

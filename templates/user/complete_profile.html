@@ -1,0 +1,54 @@
+{% extends "user/base_auth.html" %}
+{% load static %}
+
+{% block title %}Paknomik - Complete Your Profile{% endblock %}
+
+{% block content %}
+<div style="display: flex">
+  
+  <div class="right_half">
+    <div class="responsive_logo">
+      <a href="{% url 'home' %}">
+        <img src="{% static 'images/colored_brand.png' %}" style="height: 60px;" />
+      </a>
+    </div>
+    
+    <div style="width: 100%; text-align: center;">
+      <p class="wellcome_text_2">Complete Your Profile</p>
+      <div class="warning-box" style="background: #f0eaff; border-color: #6c3b9e;">
+        <i class="fas fa-check-circle" style="color: #6c3b9e; font-size: 24px; margin-bottom: 10px;"></i>
+        <p style="margin: 0; font-weight: 500;">Become a Verified Client</p>
+        <p style="margin: 5px 0 0; font-size: 14px;">Complete your company profile to contact suppliers and request quotations</p>
+      </div>
+    </div>
+    
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="paknomik_login" style="max-height: 60vh; overflow-y: auto; padding-right: 10px;">
+        {% for field in form %}
+          <div class="form-group">
+            <label class="form-label">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}
+              <div class="help-text">{{ field.help_text }}</div>
+            {% endif %}
+            {% if field.errors %}
+              <ul class="errorlist">
+                {% for error in field.errors %}
+                  <li>{{ error }}</li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+          </div>
+        {% endfor %}
+        
+        <div class="last_action" style="justify-content: center; margin-top: 20px;">
+          <button type="submit" class="auth-button signup" style="padding: 12px 40px;">
+            <i class="fas fa-check"></i> Become a Verified Client
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

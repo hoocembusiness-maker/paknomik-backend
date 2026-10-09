@@ -1,0 +1,12 @@
+{% extends "user/base_auth.html" %}
+{% block title %}Supplier Products{% endblock %}
+{% block content %}
+<div style="padding: 20px;">
+  <h1>My Products</h1>
+  {% for product in page_obj %}
+    <div>{{ product.name }} - <a href="{% url 'edit_product' product.id %}">Edit</a></div>
+  {% empty %}
+    <p>No products yet.</p>
+  {% endfor %}
+</div>
+{% endblock %}

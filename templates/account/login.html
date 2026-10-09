@@ -1,0 +1,154 @@
+{% extends "base.html" %} {% block title %}Paknomik - Log in{% endblock %}
+<!-- -->
+{% load socialaccount %}
+<!-- -->
+{%load static %}
+<!-- -->
+{% block other_style_sheet %} {% endblock %}
+
+<!-- -->
+
+{% block start_container%} {% endblock %} {%block content %}
+<!-- -->
+
+{%block header %} {% endblock %}
+<!-- -->
+<div style="display: flex">
+  <div class="left_half">
+    <a href="{% url 'home' %}">
+      <img src="/static/images/white_brand.png" class="logo_img" />
+    </a>
+    <p class="tagline">
+      The Gateway of <br /><span class="sub_tagline">THE PACKAGING MARKET</span>
+    </p>
+  </div>
+  <div class="right_half">
+    <!-- -->
+    <div class="responsive_logo">
+      <a href="{% url 'home' %}">
+        <img src="/static/images/colored_brand.png" class="logo_img" />
+      </a>
+    </div>
+    <div class="first_action">
+      <span>New here?</span>
+      <button
+        class="auth-button signup"
+        style="font-size: Quicksand"
+        onClick="GoToSignup()"
+      >
+        Create Account
+      </button>
+    </div>
+    <!-- -->
+    <div style="text-align: center; width: 100%">
+      <p class="wellcome_text">Wellcome!!</p>
+    </div>
+    <!-- -->
+    <form method="post" >
+      {% csrf_token %}
+
+      <!-- start form -->
+      <div class="paknomik_login">
+        <input id="email" name="login" placeholder="Email or Username" />
+        <div class="pw_input_container_login">
+          <input
+            id="password"
+            type="password"
+            name="password"
+            placeholder="Password"
+            style="flex: 1"
+          />
+          <button
+            class="btn btn-default"
+            style="
+              color: #6c3b9e;
+              font-weight: 500;
+              background-color: transparent;
+              border: 0;
+              font-size: 1.2rem;
+              width: 4vw;
+              margin-top: 1.2vw;
+            "
+            type="button"
+            onClick="hide_password()"
+          >
+            <i class="fa fa-eye" aria-hidden="true"></i>
+          </button>
+        </div>
+        <br />
+
+        <div class="login-actions">
+          <button type="submit" class="auth-button signup">Login</button>
+          <a href="{% url 'password_reset' %}" class="login_forgot">Forgot your password?</a>
+        </div>
+      </div>
+      <!-- end form -->
+
+      <div class="seperator">
+        <span
+          style="
+            background-color: #faf8ff;
+            color: #1e1a2f;
+            font-family: Quicksand;
+            font-size: 15px;
+            left: 50%;
+            padding: 0 8px;
+            position: absolute;
+            text-decoration: none;
+            top: 50%;
+            transform: translate(-50%, -50%);
+          "
+          >Or sign in using :</span
+        >
+
+        <!-- -->
+      </div>
+      <div class="social_log" style="margin-top: 2vw">
+        <!--  GOOGLE -->
+        <a
+          href="/api/auth/google/?redirect=/"
+          class="auth-button signup social_sign"
+          style="background: #34a853"
+          ><i
+            style="margin-right: 1vw"
+            class="fab fa-google icon_social_media"
+          ></i
+          >Google</a
+        >
+        <a
+          href="{% provider_login_url 'linkedin'  %}"
+          class="auth-button signup social_sign"
+          style="background: #0077b5"
+          ><i
+            style="margin-right: 1vw"
+            class="fab fa-linkedin icon_social_media"
+          >
+          </i
+          >LinkedIn</a
+        >
+        <!--  LIKDANA -->
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  const hide_password = () => {
+    var pw_input = document.getElementById("password");
+    if (pw_input.type == "password") {
+      pw_input.type = "text";
+    } else {
+      pw_input.type = "password";
+    }
+  };
+
+  const GoToSignup = () => {
+    window.location.href = "{% url 'account_signup' %}";
+  };
+</script>
+
+<!-- -->
+
+{% endblock %}
+<!-- -->
+{%block footer %} {% endblock %} {% block end_container%} {% endblock %}

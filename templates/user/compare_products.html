@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Compare Products{% endblock %}
+{% block content %}
+<div style="padding: 20px;">
+  <h1>Compare Products</h1>
+  {% for product in products %}
+    <div>{{ product.name }} - {{ product.price }}</div>
+  {% empty %}
+    <p>Select at least two products to compare.</p>
+  {% endfor %}
+</div>
+{% endblock %}

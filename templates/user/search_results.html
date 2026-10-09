@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Search Results{% endblock %}
+{% block content %}
+<section class="market-page">
+  <h1 class="market-title">Find all your packaging NEEDS in one and only one PLACE</h1>
+
+  <form method="get" class="market-search-bar">
+    <input
+      type="text"
+      name="query"
+      value="{{ request.GET.query|default:'' }}"
+      placeholder="Paper Bag for Bakery"
+    />
+    <button type="submit" class="signup"><i class="fas fa-search"></i></button>
+  </form>
+
+  <div class="market-filters">
+    <select name="form_type" onchange="this.form.submit()" form="{{ form.auto_id|default:'search-form' }}">
+      <option value="">Category</option>
+    </select>
+    <select><option>Industry</option></select>
+    <select><option>Quantity</option></select>
+    <select><option>Dimensions</option></select>
+    <select><option>Delivery Time</option></select>
+    <select><option>Material</option></select>
+    <select><option>More +</option></select>
+  </div>
+
+  <div class="products-grid">
+    {% for product in page_obj %}
+      <article class="product-card">
+        <a href="{% url 'product_detail' product.id %}">
+          {% if product.primary_image %}
+            <img src="{{ product.primary_image.url }}" alt="{{ product.name }}" class="product-card-image" />
+          {% endif %}
+        </a>
+        <h3>{{ product.name }}</h3>
+        <p class="chip">{{ product.price|default:"--" }} dzd</p>
+        <div class="product-meta">Supplier: {{ product.supplier.company_name }}</div>
+        <div class="product-meta">MOQ: {{ product.min_order_quantity }} units</div>
+        <div class="product-meta">Delivery: {{ product.lead_time_days }} days</div>
+        <div class="product-meta">Dimensions: --</div>
+        <div class="card-actions">
+          <a class="signup" href="{% url 'product_detail' product.id %}">Order Now</a>
+          <a class="login" href="{% url 'compare_products' %}?ids={{ product.id }}">Compare</a>
+        </div>
+      </article>
+    {% empty %}
+      <p>No products found.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

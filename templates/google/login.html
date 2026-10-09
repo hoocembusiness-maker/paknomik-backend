@@ -1,0 +1,21 @@
+{% extends "base.html" %} {% load socialaccount %} {% load static %} {% block
+title %}Paknomik - Connect a Social Account{% endblock %} {% block
+start_container %}{% endblock %} {% block content %}
+<div style="display: flex">
+  <!-- Left half: branding -->
+  <div class="left_half">
+    <a href="{% url 'home' %}">
+      <img src="/static/images/white_brand.png" class="logo_img" />
+    </a>
+    <img
+      src="/static/images/paknomik_lineup.png"
+      style="height: 20vw; border-radius: 1vw"
+    />
+  </div>
+
+  <!-- Right half: connection form -->
+  <div class="right_half">
+    <h1>Google login</h1>
+  </div>
+</div>
+{% endblock %}

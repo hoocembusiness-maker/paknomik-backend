@@ -1,0 +1,35 @@
+    @page {
+      size: A4;
+      margin: 17mm 14mm 24mm 14mm;
+      @frame paknomik_band {
+        -pdf-frame-content: paknomik-band;
+        left: 0; top: 0; width: 210mm; height: 6mm;
+      }
+      @frame paknomik_footer {
+        -pdf-frame-content: paknomik-footer;
+        left: 14mm; width: 182mm; bottom: 7mm; height: 13mm;
+      }
+    }
+    table.pak-band { width: 100%; }
+    td.pak-band-fill {
+      background-color: {{ paknomik_accent }};
+      height: 9px;
+      padding: 0;
+      font-size: 1pt;
+      line-height: 1pt;
+    }
+    table.pak-footer { width: 100%; }
+    table.pak-footer td {
+      border-top: 1.2pt solid {{ paknomik_accent }};
+      padding: 5px 0 0 0;
+      vertical-align: middle;
+      color: {{ paknomik_accent }};
+      font-size: 7.5pt;
+      line-height: 1.35;
+    }
+    td.pak-footer-logo { width: 92px; }
+    td.pak-footer-logo-text { font-weight: bold; font-size: 9pt; }
+    td.pak-footer-text { text-align: center; }
+    td.pak-footer-page { width: 70px; text-align: right; }
+    li { -pdf-keep-with-next: true; }
+    li.pdf-li-last { -pdf-keep-with-next: false; }

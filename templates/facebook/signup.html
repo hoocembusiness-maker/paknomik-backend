@@ -1,0 +1,94 @@
+{% extends "base.html" %} {% load socialaccount %} {% load static %} {% block
+title %}Paknomik - Google Sign Up{% endblock %} {% block content %}
+<div style="display: flex">
+  <!-- Left side: branding -->
+  <div class="left_half">
+    <a href="{% url 'home' %}">
+      <img src="/static/images/white_brand.png" class="logo_img" />
+    </a>
+    <img
+      src="/static/images/paknomik_lineup.png"
+      style="height: 20vw; border-radius: 1vw"
+    />
+  </div>
+
+  <!-- Right side: form -->
+  <div class="right_half">
+    <div class="first_action">
+      <a
+        href="{% url 'account_login' %}"
+        class="auth-button signup"
+        style="padding-left: 3vw; padding-right: 3vw"
+      >
+        Login
+      </a>
+    </div>
+
+    <div style="width: 100%">
+      <p class="wellcome_text_2">Complete your registration</p>
+    </div>
+
+    <div class="seperator">
+      <span
+        style="
+          background-color: #faf8ff;
+          color: #1e1a2f;
+          font-family: Quicksand;
+          font-size: 15px;
+          left: 50%;
+          padding: 0 8px;
+          position: absolute;
+          top: 50%;
+          transform: translate(-50%, -50%);
+        "
+      >
+        {{ provider.name }}
+      </span>
+    </div>
+
+    <form method="post" action="{% url 'socialaccount_signup' %}">
+      {% csrf_token %} {% if form.errors %}
+      <div class="error-messages" style="margin: 0 3vw">
+        {% for field, errors in form.errors.items %} {% for error in errors %}
+        <p class="small_warning_message">{{ error }}</p>
+        {% endfor %} {% endfor %}
+      </div>
+      {% endif %}
+
+      <div class="paknomik_login">
+        <!-- Username field (if required) -->
+        <input
+          type="text"
+          name="username"
+          placeholder="Username"
+          value="{{ form.username.value|default:'' }}"
+        />
+
+        <!-- Email field (pre-filled from provider) -->
+        <input
+          type="email"
+          name="email"
+          placeholder="Email"
+          value="{{ form.email.value|default:'' }}"
+        />
+
+        <br />
+        <div class="last_action">
+          <button
+            type="submit"
+            class="auth-button signup"
+            style="
+              padding-left: 1vw;
+              padding-right: 1vw;
+              font-size: 1.2rem;
+              width: 10vw;
+            "
+          >
+            Continue
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

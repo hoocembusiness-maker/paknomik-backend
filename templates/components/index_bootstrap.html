@@ -1,0 +1,104 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      rel="stylesheet"
+      href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css"
+    />
+    <link href="https://fonts.googleapis.com" rel="stylesheet" />
+    <title>Paknomik</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+    <style>
+      .navbar-default {
+        background-color: #240050;
+        padding-top: 10px;
+        padding-bottom: 10px;
+      }
+      .navbar-default li a {
+        color: #ffffff !important;
+      }
+
+      .navbar-brand {
+        color: #ffffff;
+      }
+
+      .container {
+        justify-content: space-between;
+        display: flex;
+      }
+      .input-group {
+        width: 400px;
+      }
+
+      @media (max-width: 767px) {
+        .input-group {
+          width: 100%;
+        }
+        .navbar-right {
+          display: none;
+        }
+      }
+      @media (max-width: 992px) {
+        .input-group {
+          width: 280px;
+        }
+        .menu {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="navbar navbar-default">
+      <div class="container">
+        <div class="logo">
+          <img src="/static/images/white_brand.png" alt="Paknomik" />
+        </div>
+        <ul class="nav navbar-nav menu">
+          <li><a href="#">About</a></li>
+          <li><a href="#">Suppliers</a></li>
+          <li><a href="#">Categories</a></li>
+        </ul>
+        <form
+          class="navbar-form navbar-left search-wide"
+          action="/action_page.php"
+        >
+          <div class="input-group">
+            <input
+              type="text"
+              class="form-control"
+              placeholder="Search"
+              name="search"
+            />
+            <div class="input-group-btn">
+              <button class="btn btn-default" type="submit">
+                <i class="glyphicon glyphicon-search"></i>
+              </button>
+            </div>
+          </div>
+        </form>
+        <ul class="nav navbar-nav navbar-right">
+          <li>
+            <a href="#"
+              ><span class="glyphicon glyphicon-user"></span> Sign Up</a
+            >
+          </li>
+          <li>
+            <a href="#"
+              ><span class="glyphicon glyphicon-log-in"></span> Login</a
+            >
+          </li>
+        </ul>
+      </div>
+    </nav>
+  </body>
+</html>

@@ -1,0 +1,12 @@
+{% extends "user/base_auth.html" %}
+{% block title %}Edit Product{% endblock %}
+{% block content %}
+<div style="padding: 20px;">
+  <h1>Edit {{ product.name }}</h1>
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="auth-button signup">Save</button>
+  </form>
+</div>
+{% endblock %}

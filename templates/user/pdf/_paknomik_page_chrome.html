@@ -1,0 +1,21 @@
+<div id="paknomik-band">
+  <table class="pak-band" cellpadding="0" cellspacing="0"><tr><td class="pak-band-fill">&nbsp;</td></tr></table>
+</div>
+<div id="paknomik-footer">
+  <table class="pak-footer" cellpadding="0" cellspacing="0">
+    <tr>
+      {% if paknomik_footer_logo %}
+      <td class="pak-footer-logo">
+        <img src="{{ paknomik_footer_logo.uri }}" width="{{ paknomik_footer_logo.width }}" height="{{ paknomik_footer_logo.height }}" alt="PAKNOMIK"/>
+      </td>
+      {% else %}
+      <td class="pak-footer-logo pak-footer-logo-text">PAKNOMIK</td>
+      {% endif %}
+      <td class="pak-footer-text">
+        Document généré via Paknomik<br/>
+        Tél. {{ paknomik_phone }} · {{ paknomik_email }}
+      </td>
+      <td class="pak-footer-page">Page <pdf:pagenumber/> / <pdf:pagecount/></td>
+    </tr>
+  </table>
+</div>

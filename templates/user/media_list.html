@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Pak Media{% endblock %}
+{% block content %}
+<div style="padding: 20px;">
+  <h1>Pak Media</h1>
+  {% for post in page_obj %}
+    <div><a href="{% url 'media_detail' post.id %}">{{ post.title }}</a></div>
+  {% empty %}
+    <p>No posts.</p>
+  {% endfor %}
+</div>
+{% endblock %}
