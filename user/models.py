@@ -86,7 +86,7 @@ class Category(models.Model):
     ``Product.target_markets``, not as taxonomy families.
     """
 
-    external_id = models.CharField(max_length=20, unique=True, blank=True, null=True)
+    external_id = models.CharField(max_length=64, unique=True, blank=True, null=True)
     slug = models.SlugField(max_length=80, unique=True, null=True, blank=True)
     sort_order = models.PositiveSmallIntegerField(default=0)
     parent = models.ForeignKey(
@@ -152,7 +152,7 @@ class TechnicalAttribute(models.Model):
     # boolean and text attributes keep a single value.
     MULTI_VALUE_TYPES = ("number", "choice")
 
-    external_id = models.CharField(max_length=20, unique=True, blank=True, null=True)
+    external_id = models.CharField(max_length=64, unique=True, blank=True, null=True)
     name_en = models.CharField(max_length=150)
     name_fr = models.CharField(max_length=150, blank=True)
     name_ar = models.CharField(max_length=150, blank=True)

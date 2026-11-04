@@ -1,6 +1,6 @@
 """Seed Bobines category and attributes (idempotent)."""
 
-from django.db import migrations
+from django.db import migrations, models
 
 
 def seed_bobines(apps, schema_editor):
@@ -16,5 +16,15 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.AlterField(
+            model_name='category',
+            name='external_id',
+            field=models.CharField(blank=True, max_length=64, null=True, unique=True),
+        ),
+        migrations.AlterField(
+            model_name='technicalattribute',
+            name='external_id',
+            field=models.CharField(blank=True, max_length=64, null=True, unique=True),
+        ),
         migrations.RunPython(seed_bobines, migrations.RunPython.noop),
     ]
