@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
+
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -21,6 +23,7 @@ from user.pragmadinar import (
     debit_service,
     format_cost_label,
     get_service,
+    tariff_display_cost,
     wallet_payload,
 )
 from user.platform_config import pragmadinar_to_dzd
@@ -86,9 +89,14 @@ class CampaignListView(APIView):
                     "group": campaigns.FORMAT_GROUP.get(value, ""),
                     "placement": placement,
                     "placementLabel": campaigns.PLACEMENT_LABELS.get(placement, ""),
+                    "costPragmadinar": (
+                        f"{tariff_display_cost(service).quantize(Decimal('0.01'))}"
+                        if service
+                        else "0.00"
+                    ),
                     "costLabel": (
                         format_cost_label(
-                            service.cost_pragmadinar,
+                            tariff_display_cost(service),
                             service.unit,
                             service.unit_quantity,
                             service.unit_label,
@@ -110,6 +118,8 @@ class CampaignListView(APIView):
                     {"value": v, "label": l} for v, l in Campaign.ContextScope.choices
                 ],
                 "supplierCategories": _supplier_category_names(supplier),
+                "supplierKeywords": campaigns.supplier_keyword_choices(supplier),
+                "supplierSubcategories": campaigns.supplier_subcategory_choices(supplier),
                 "results": results,
             }
         )

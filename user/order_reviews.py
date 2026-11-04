@@ -2,8 +2,9 @@
 
 from django.db.models import Avg, Count, FloatField, IntegerField, OuterRef, Subquery
 from django.db.models.functions import Coalesce
+from django.utils import timezone
 
-from user.models import Order, OrderSupplierReview
+from user.models import AppNotification, Order, OrderSupplierReview, SupplierSettings
 
 RATEABLE_STATUSES = (Order.Status.DELIVERED, Order.Status.COMPLETED)
 COMMENT_MAX = 500
@@ -68,7 +69,10 @@ def save_order_review(order, buyer, rating, comment=""):
     if stars < 1 or stars > 5:
         raise OrderReviewError("La note doit être comprise entre 1 et 5.", "invalid_rating")
     text = (comment or "").strip()[:COMMENT_MAX]
-    review, _created = OrderSupplierReview.objects.update_or_create(
+    previous = (
+        OrderSupplierReview.objects.filter(order=order).only("rating", "comment").first()
+    )
+    review, created = OrderSupplierReview.objects.update_or_create(
         order=order,
         defaults={
             "buyer": buyer,
@@ -77,4 +81,76 @@ def save_order_review(order, buyer, rating, comment=""):
             "comment": text,
         },
     )
+    changed = (
+        created
+        or previous is None
+        or previous.rating != stars
+        or (previous.comment or "") != text
+    )
+    if changed:
+        notify_supplier_of_review(review, created=created)
     return review
+
+
+def buyer_public_name(user):
+    """Name shown to the supplier. Never the e-mail address."""
+    name = (user.get_full_name() or "").strip()
+    if name:
+        return name
+    company = (getattr(user, "company_name", "") or "").strip()
+    if company:
+        return company
+    if getattr(user, "first_name", ""):
+        return user.first_name
+    return "Un acheteur"
+
+
+def supplier_rating_is_public(supplier) -> bool:
+    """Boutique header shows buyer ratings unless the supplier hides them."""
+    try:
+        settings_obj = supplier.settings
+    except SupplierSettings.DoesNotExist:
+        settings_obj = None
+    raw = (getattr(settings_obj, "page_design", None) or {}) if settings_obj else {}
+    return str(raw.get("showRating", "true")).lower() not in ("false", "0", "no")
+
+
+def public_review_rows(supplier):
+    reviews = (
+        supplier.delivery_reviews.select_related("buyer", "order__product")
+        .order_by("-created_at", "-id")
+    )
+    rows = []
+    for review in reviews:
+        product = getattr(review.order, "product", None)
+        rows.append(
+            {
+                "id": review.id,
+                "rating": review.rating,
+                "comment": review.comment or "",
+                "createdAt": review.created_at.isoformat(),
+                "updatedAt": review.updated_at.isoformat(),
+                "buyerName": buyer_public_name(review.buyer),
+                "productName": product.name if product is not None else "",
+            }
+        )
+    return rows
+
+
+def notify_supplier_of_review(review, *, created):
+    buyer_name = buyer_public_name(review.buyer)
+    when = timezone.localtime(review.updated_at or review.created_at)
+    date_label = when.strftime("%d/%m/%Y %H:%M")
+    comment = (review.comment or "").strip()
+    detail = f"« {comment} »" if comment else "Sans commentaire"
+    title = "Nouvelle note" if created else "Note mise à jour"
+    body = f"{buyer_name} · {date_label} · {review.rating}/5\n{detail}"
+    link = f"/suppliers/{review.supplier_id}?reviews=1&from=supplier"
+    for user in review.supplier.users.all():
+        AppNotification.objects.create(
+            user=user,
+            kind=AppNotification.Kind.SUPPLIER_RATED,
+            title=title,
+            body=body,
+            link=link,
+        )

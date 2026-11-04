@@ -25,7 +25,7 @@ def competitor_supplier_queryset(supplier) -> QuerySet[Supplier]:
     if not subcategory_ids:
         return Supplier.objects.none()
     return (
-        Supplier.objects.filter(is_active=True)
+        Supplier.objects.filter(is_active=True, is_ghost=False)
         .filter(
             products__is_active=True,
             products__subcategory_id__in=subcategory_ids,

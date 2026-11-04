@@ -6,8 +6,8 @@ from django.test import TestCase
 from django.urls import reverse
 from rest_framework.test import APIClient
 
-from user.models import Category, Order, OrderSupplierReview, Product
-from user.tests_crm_pragmadinar import make_buyer, make_supplier
+from user.models import AppNotification, Category, Order, OrderSupplierReview, Product, SupplierSettings
+from user.tests_crm_pragmadinar import make_buyer, make_supplier, make_supplier_user
 
 
 class OrderSupplierReviewTests(TestCase):
@@ -90,3 +90,83 @@ class OrderSupplierReviewTests(TestCase):
         other = APIClient()
         other.force_authenticate(self.other)
         self.assertEqual(self._rate(client=other).status_code, 404)
+
+    def test_rating_notifies_supplier_and_lists_buyer_date_and_comment(self):
+        owner = make_supplier_user(self.supplier)
+        self.buyer.first_name = "Lina"
+        self.buyer.last_name = "Boudiaf"
+        self.buyer.save(update_fields=["first_name", "last_name"])
+        self.order.status = Order.Status.DELIVERED
+        self.order.save(update_fields=["status"])
+
+        self.assertEqual(self._rate(comment="Emballage nickel").status_code, 200)
+
+        note = AppNotification.objects.get(
+            user=owner, kind=AppNotification.Kind.SUPPLIER_RATED
+        )
+        self.assertEqual(note.title, "Nouvelle note")
+        self.assertIn("Lina Boudiaf", note.body)
+        self.assertIn("Emballage nickel", note.body)
+        self.assertIn(f"/suppliers/{self.supplier.pk}?reviews=1", note.link)
+        self.assertFalse(note.is_read)
+
+        same = self._rate(comment="Emballage nickel")
+        self.assertEqual(same.status_code, 200)
+        self.assertEqual(
+            AppNotification.objects.filter(kind=AppNotification.Kind.SUPPLIER_RATED).count(),
+            1,
+        )
+
+        self.assertEqual(self._rate(rating=5, comment="Encore mieux").status_code, 200)
+        self.assertEqual(
+            AppNotification.objects.filter(kind=AppNotification.Kind.SUPPLIER_RATED).count(),
+            2,
+        )
+
+        public = APIClient().get(reverse("api_supplier_reviews", args=[self.supplier.pk]))
+        self.assertEqual(public.status_code, 200)
+        payload = public.json()
+        self.assertTrue(payload["showRating"])
+        self.assertEqual(payload["reviewCount"], 1)
+        self.assertEqual(payload["rating"], 5)
+        row = payload["reviews"][0]
+        self.assertEqual(row["buyerName"], "Lina Boudiaf")
+        self.assertEqual(row["comment"], "Encore mieux")
+        self.assertEqual(row["productName"], "Carton")
+        self.assertTrue(row["createdAt"])
+        self.assertNotIn("@", row["buyerName"])
+
+        self.client.force_authenticate(owner)
+        summary = self.client.get(reverse("api_notifications_summary")).json()
+        self.assertEqual(summary["ratings"], 2)
+        self.assertEqual(summary["total"], summary["ratings"] + summary["messages"] + summary["orders"] + summary["rfqs"] + summary["favorites"])
+        self.assertEqual(len(summary["ratingNotices"]), 2)
+
+        seen = self.client.post(reverse("api_ratings_notifications_seen"))
+        self.assertEqual(seen.status_code, 200)
+        summary = self.client.get(reverse("api_notifications_summary")).json()
+        self.assertEqual(summary["ratings"], 0)
+        self.assertEqual(summary["ratingNotices"], [])
+
+    def test_hidden_rating_is_not_public_but_owner_keeps_the_history(self):
+        SupplierSettings.objects.create(
+            supplier=self.supplier, page_design={"showRating": "false"}
+        )
+        owner = make_supplier_user(self.supplier)
+        self.order.status = Order.Status.DELIVERED
+        self.order.save(update_fields=["status"])
+        self.assertEqual(self._rate().status_code, 200)
+
+        public = APIClient().get(reverse("api_supplier_reviews", args=[self.supplier.pk]))
+        self.assertEqual(public.status_code, 200)
+        self.assertFalse(public.json()["showRating"])
+        self.assertEqual(public.json()["reviews"], [])
+        self.assertEqual(public.json()["reviewCount"], 0)
+
+        owner_client = APIClient()
+        owner_client.force_authenticate(owner)
+        private = owner_client.get(reverse("api_supplier_reviews", args=[self.supplier.pk]))
+        self.assertEqual(private.status_code, 200)
+        self.assertFalse(private.json()["showRating"])
+        self.assertEqual(len(private.json()["reviews"]), 1)
+        self.assertEqual(private.json()["reviews"][0]["comment"], "Livraison soignée")

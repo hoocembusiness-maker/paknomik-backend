@@ -29,6 +29,11 @@
       <a class="btn-icon-action btn-solid-purple" href="{% url 'contact_supplier' supplier.id %}" title="Contact">
         <i class="fas fa-envelope"></i>
       </a>
+      {% if quote_categories %}
+        <a class="btn-icon-action btn-solid-purple" href="{% url 'request_quote' supplier.id %}" title="Demander un devis">
+          <i class="fas fa-file-invoice"></i>
+        </a>
+      {% endif %}
       {% if supplier.website %}
         <a class="btn-icon-action btn-outline-purple" href="{{ supplier.website }}" target="_blank" title="Website">
           <i class="fas fa-globe"></i>

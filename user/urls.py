@@ -28,8 +28,15 @@ urlpatterns = [
     path('search/', views.search_products, name='search'),
     path('suppliers/', views.suppliers_list, name='suppliers'),
     path('supplier/<int:supplier_id>/', views.supplier_detail, name='supplier_detail'),
+    path('supplier/<int:supplier_id>/devis/', views.request_quote, name='request_quote'),
     path('product/<int:product_id>/', views.product_detail, name='product_detail'),
     path('contact-supplier/<int:supplier_id>/', views.contact_supplier, name='contact_supplier'),
+    path('supplier-quote-forms/', views.supplier_quote_forms, name='supplier_quote_forms'),
+    path(
+        'supplier-quote-forms/<int:category_id>/',
+        views.supplier_quote_form_edit,
+        name='supplier_quote_form_edit',
+    ),
     path('compare/', views.compare_products, name='compare_products'),
 
     # API

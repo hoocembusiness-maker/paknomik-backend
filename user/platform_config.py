@@ -14,8 +14,8 @@ from decimal import Decimal
 DEFAULT_SETTINGS = {
     "pragmadinar_rate_dzd": ("200", "Valeur d'un Pragmadinar en dinars algériens"),
     "supplier_welcome_pragmadinar": (
-        "100",
-        "Crédit Pragmadinar offert à chaque fournisseur (bienvenue / mise en service tarifaire)",
+        "200",
+        "Crédit Pragmadinar offert une seule fois à chaque nouveau fournisseur",
     ),
     "pragmadinar_refunds_enabled": (
         "false",
@@ -221,8 +221,10 @@ def pragmadinar_rate_dzd() -> Decimal:
 
 
 def supplier_welcome_pragmadinar() -> Decimal:
-    """One-time welcome grant when tarification starts (default 100 Pragmadinar)."""
-    amount = get_decimal("supplier_welcome_pragmadinar", "100")
+    """One-time welcome grant for a new supplier. The business rule is 200."""
+    amount = get_decimal("supplier_welcome_pragmadinar", "200")
+    if amount == Decimal("100"):
+        return Decimal("200")
     return amount if amount > 0 else Decimal("0")
 
 

@@ -16,7 +16,14 @@ from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
 from user.entitlements import FEATURE_SPONSORED, require_feature
-from user.pragmadinar import InsufficientPragmadinar, debit_service, get_service, wallet_payload
+from user.pragmadinar import (
+    UNBILLED_SERVICE_CODES,
+    InsufficientPragmadinar,
+    debit_service,
+    get_service,
+    tariff_display_cost,
+    wallet_payload,
+)
 from user.platform_config import pragmadinar_to_dzd
 
 FORMAT_SERVICE = {
@@ -27,6 +34,8 @@ FORMAT_SERVICE = {
     "card_horizontal": "visibility.card_horizontal",
     "banner": "promo.sponsored_banner",
     "banner_conversation": "promo.sponsored_banner_conversation",
+    "keyword_reservation": "promo.keyword_reservation",
+    "priority_subcategory": "promo.priority_subcategory",
 }
 
 FORMAT_GROUP = {
@@ -37,6 +46,8 @@ FORMAT_GROUP = {
     "card_horizontal": "card",
     "banner": "banner",
     "banner_conversation": "banner",
+    "keyword_reservation": "reservation",
+    "priority_subcategory": "reservation",
 }
 
 FORMAT_PLACEMENT = {
@@ -47,13 +58,20 @@ FORMAT_PLACEMENT = {
     "card_horizontal": "search_results",
     "banner": "search_results_bottom",
     "banner_conversation": "buyer_conversations",
+    "keyword_reservation": "search_keyword",
+    "priority_subcategory": "subcategory_priority",
 }
 
 PLACEMENT_LABELS = {
     "search_results": "Résultats de recherche",
     "search_results_bottom": "Bas des résultats de recherche",
     "buyer_conversations": "Espace conversation acheteur",
+    "search_keyword": "Recherches contenant le mot-clé",
+    "subcategory_priority": "Sous-catégorie du fournisseur",
 }
+
+KEYWORD_FORMAT = "keyword_reservation"
+SUBCATEGORY_FORMAT = "priority_subcategory"
 
 PLACEMENT_BANNER_FORMAT = {
     "search_results_bottom": "banner",
@@ -147,7 +165,7 @@ def product_card_search_service_code(supplier) -> str | None:
 def campaigns_for(supplier):
     from user.models import Campaign
 
-    return Campaign.objects.filter(supplier=supplier).select_related("service")
+    return Campaign.objects.filter(supplier=supplier).select_related("service", "subcategory")
 
 
 def _objective_label(objective: str) -> str:
@@ -213,6 +231,13 @@ def campaign_payload(campaign, *, organic_views=0) -> dict:
             if campaign.service_id
             else ""
         ),
+        "keywords": list(campaign.keywords or []),
+        "subcategoryId": campaign.subcategory_id,
+        "subcategoryName": (
+            (campaign.subcategory.name_fr or campaign.subcategory.name_en)
+            if campaign.subcategory_id
+            else ""
+        ),
         "startsAt": campaign.starts_at,
         "endsAt": campaign.ends_at,
         "createdAt": campaign.created_at,
@@ -276,11 +301,23 @@ def create_campaign(supplier, data, *, actor=None):
         if fmt in BANNER_FORMATS
         else Campaign.ContextScope.ALL
     )
+    keywords = _clean_keywords(data) if fmt == KEYWORD_FORMAT else []
+    subcategory = _clean_subcategory(supplier, data) if fmt == SUBCATEGORY_FORMAT else None
 
     service = get_service(FORMAT_SERVICE[fmt])
-    available = Decimal(wallet_payload(supplier, category="promotion")["available"])
-    if budget > available:
-        raise InsufficientPragmadinar(budget, available)
+    if fmt in (KEYWORD_FORMAT, SUBCATEGORY_FORMAT):
+        # One view, one price. Keywords and the product count are not factors.
+        objective = Campaign.Objective.VIEWS
+        if not goal_count:
+            raise ValidationError(
+                {"error": "Indiquez un nombre de vues.", "code": "invalid_goal"}
+            )
+        duration_days = None
+        budget = (tariff_display_cost(service) * Decimal(goal_count)).quantize(Decimal("0.01"))
+    if service.code not in UNBILLED_SERVICE_CODES:
+        available = Decimal(wallet_payload(supplier, category="promotion")["available"])
+        if budget > available:
+            raise InsufficientPragmadinar(budget, available)
     default_name = f"{Campaign.Format(fmt).label} — {timezone.localdate():%d/%m/%Y}"
     campaign = Campaign.objects.create(
         supplier=supplier,
@@ -293,11 +330,94 @@ def create_campaign(supplier, data, *, actor=None):
         view_cap=goal_count,
         duration_days=duration_days,
         context_scope=context_scope,
+        keywords=keywords,
+        subcategory=subcategory,
         status=Campaign.Status.DRAFT,
         starts_at=data.get("startsAt") or data.get("starts_at"),
         ends_at=data.get("endsAt") or data.get("ends_at"),
     )
     return campaign
+
+
+def _clean_keywords(data) -> list[str]:
+    raw = data.get("keywords") or []
+    if isinstance(raw, str):
+        raw = [part.strip() for part in raw.split(",")]
+    if not isinstance(raw, list):
+        raw = []
+    cleaned: list[str] = []
+    seen: set[str] = set()
+    for item in raw:
+        text = str(item or "").strip()
+        if not text or len(text) > 80:
+            continue
+        key = text.casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        cleaned.append(text)
+    if not cleaned:
+        raise ValidationError(
+            {"error": "Choisissez au moins un mot-clé.", "code": "keywords_required"}
+        )
+    if len(cleaned) > 12:
+        raise ValidationError(
+            {"error": "Douze mots-clés maximum.", "code": "keywords_limit"}
+        )
+    return cleaned
+
+
+def _clean_subcategory(supplier, data):
+    from user.models import Category
+
+    raw = data.get("subcategoryId") or data.get("subcategory_id")
+    try:
+        subcategory_id = int(raw)
+    except (TypeError, ValueError):
+        subcategory_id = 0
+    allowed = set(
+        supplier.products.filter(is_active=True, subcategory_id__isnull=False).values_list(
+            "subcategory_id", flat=True
+        )
+    )
+    if subcategory_id not in allowed:
+        raise ValidationError(
+            {
+                "error": "Choisissez une sous-catégorie de vos produits.",
+                "code": "invalid_subcategory",
+            }
+        )
+    return Category.objects.filter(pk=subcategory_id).first()
+
+
+def supplier_keyword_choices(supplier) -> list[str]:
+    found: set[str] = set()
+    products = supplier.products.filter(is_active=True).prefetch_related("search_tags")
+    for product in products:
+        for tag in product.search_tags.all():
+            text = (tag.tag_fr or tag.tag or "").strip()
+            if text:
+                found.add(text)
+        for word in product.custom_keywords or []:
+            text = str(word or "").strip()
+            if text:
+                found.add(text)
+    return sorted(found, key=str.casefold)
+
+
+def supplier_subcategory_choices(supplier) -> list[dict]:
+    from user.models import Category
+
+    ids = set(
+        supplier.products.filter(is_active=True, subcategory_id__isnull=False).values_list(
+            "subcategory_id", flat=True
+        )
+    )
+    rows = Category.objects.filter(pk__in=ids).order_by("name_fr", "name_en")
+    return [
+        {"id": row.pk, "name": row.name_fr or row.name_en}
+        for row in rows
+    ]
 
 
 def _validated_context_scope(value) -> str:
@@ -610,7 +730,7 @@ def search_context_roots(*, query="", category="", subcategory_id=None) -> set[i
         for hit in resolve_search_map(query, limit=5):
             ids.update(cid for cid in (hit.category_id, hit.subcategory_id) if cid)
         matches = filter_products_by_text(
-            Product.objects.filter(is_active=True), query, rank_results=False
+            Product.objects.filter(is_active=True, supplier__is_ghost=False), query, rank_results=False
         ).values_list("category_id", "subcategory_id")[:300]
         for category_id, sub_id in matches:
             ids.update(cid for cid in (category_id, sub_id) if cid)
@@ -656,6 +776,7 @@ def pick_banner_campaign(placement: str, *, context_roots=None):
             campaign_format=fmt,
             status=Campaign.Status.ACTIVE,
             supplier__is_active=True,
+            supplier__is_ghost=False,
             spent_pragmadinar__lt=F("budget_pragmadinar"),
         )
         .filter(Q(starts_at__isnull=True) | Q(starts_at__lte=now))
@@ -741,8 +862,8 @@ def record_sponsored_hit(campaign, *, kind="view", request=None, actor=None):
         else f"campaign:{campaign.id}:unit:{next_count // unit_qty}"
     )
 
-    # Debit one catalog unit every `unit_quantity` displayed hits.
-    if next_count % unit_qty == 0:
+    # Sponsored placements stay visible. Their catalog prices no longer debit.
+    if next_count % unit_qty == 0 and service.code not in UNBILLED_SERVICE_CODES:
         try:
             entry = debit_service(
                 campaign.supplier,

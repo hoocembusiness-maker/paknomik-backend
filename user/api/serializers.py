@@ -65,9 +65,9 @@ from user.samples import (
 
 # Limits per subscription tier (enforced when subscription_type exists on Supplier).
 SEARCH_TAG_LIMITS = {
-    "classic": 5,
-    "extra": 10,
-    "gold": 15,
+    "classic": 64,
+    "extra": 64,
+    "gold": 64,
 }
 
 PRODUCT_IMAGE_LIMITS = {
@@ -369,11 +369,17 @@ def _supplier_search_boutique_design(supplier):
         "0",
         "no",
     )
+    show_rating = str(raw.get("showRating", "true")).lower() not in (
+        "false",
+        "0",
+        "no",
+    )
     return {
         "tier": tier,
         "coverColor": cover,
         "brandNeutralColor": (supplier.brand_neutral_color or "#ffffff").strip(),
         "showStats": show_stats,
+        "showRating": show_rating,
         "logoZoom": raw.get("logoZoom") or "1",
         "logoOffsetX": raw.get("logoOffsetX") or "0",
         "logoOffsetY": raw.get("logoOffsetY") or "0",
@@ -486,11 +492,11 @@ def _product_dimensions(product):
 
     parts = {}
     combined = None
-    for av in values:
-        key = _normalize_dim_key(av.attribute)
+    for group in _group_attribute_values(values):
+        key = _normalize_dim_key(group[0].attribute)
         if not key:
             continue
-        display = _attribute_display_value(av)
+        display = _join_attribute_values(group)
         if not display:
             continue
         if key == "combined":
@@ -633,9 +639,13 @@ def _attribute_value_from_input(attribute, value):
     return {"num_value": None, "txt_value": value, "bool_value": False}
 
 
+MAX_VALUES_PER_ATTRIBUTE = 20
+
+
 def _save_product_technical_attributes(product, category, subcategory, items):
     attribute_category = _attribute_category_for_validation(category, subcategory)
     product.attribute_values.all().delete()
+    saved: dict[int, set] = {}
     for item in items or []:
         attribute_id = item.get("attributeId")
         value = item.get("value")
@@ -656,11 +666,38 @@ def _save_product_technical_attributes(product, category, subcategory, items):
             and attribute.attribute_type != "boolean"
         ):
             continue
+        keys = saved.setdefault(attribute.id, set())
+        key = (parsed["num_value"], parsed["txt_value"].casefold(), parsed["bool_value"])
+        if key in keys:
+            continue
+        if keys and not attribute.allows_multiple_values:
+            continue
+        if len(keys) >= MAX_VALUES_PER_ATTRIBUTE:
+            continue
+        keys.add(key)
         ProductAttributeValue.objects.create(
             product=product,
             attribute=attribute,
             **parsed,
         )
+
+
+def _join_attribute_values(values) -> str | None:
+    """Display text for one attribute's value rows: '20µm / 30µm'."""
+    seen = []
+    for av in values:
+        display = _attribute_display_value(av)
+        if display and display not in seen:
+            seen.append(display)
+    return " / ".join(seen) or None
+
+
+def _group_attribute_values(values):
+    """Value rows grouped by attribute, in first-appearance order."""
+    groups = {}
+    for av in values:
+        groups.setdefault(av.attribute_id, []).append(av)
+    return list(groups.values())
 
 
 def _read_product_attribute_values(product):
@@ -693,7 +730,9 @@ def _product_technical_sheet_rows(product):
         )
 
     dim_keys = {"moq", "livraison", "dimensions", "matière première"}
-    for av in product.attribute_values.select_related("attribute", "attribute__unit").all():
+    values = product.attribute_values.select_related("attribute", "attribute__unit").all()
+    for group in _group_attribute_values(values):
+        av = group[0]
         label = (av.attribute.name_fr or av.attribute.name_en or "").strip()
         if not label:
             continue
@@ -702,7 +741,7 @@ def _product_technical_sheet_rows(product):
         if av.attribute.attribute_type == "boolean":
             value = "Oui" if av.bool_value else "Non"
         else:
-            value = _attribute_display_value(av)
+            value = _join_attribute_values(group)
         if value:
             rows.append({"label": label, "value": value})
     return rows
@@ -842,6 +881,10 @@ class CategorySerializer(serializers.ModelSerializer):
     plainDescription = serializers.CharField(source="plain_description")
     sortOrder = serializers.IntegerField(source="sort_order")
     isNewInV2 = serializers.BooleanField(source="is_new_in_v2")
+    isActive = serializers.SerializerMethodField()
+    isService = serializers.SerializerMethodField()
+    # Taxonomy v3 aliases (Famille). Legacy subcategoryCount kept for clients.
+    productTypeCount = serializers.SerializerMethodField()
     productCount = serializers.SerializerMethodField()
     icon = serializers.SerializerMethodField()
     imageUrl = serializers.SerializerMethodField()
@@ -859,10 +902,13 @@ class CategorySerializer(serializers.ModelSerializer):
             "plainDescription",
             "sortOrder",
             "isNewInV2",
+            "isActive",
+            "isService",
             "productCount",
             "icon",
             "imageUrl",
             "subcategoryCount",
+            "productTypeCount",
             "supplierCount",
             "technicalAttributeCount",
         ]
@@ -893,7 +939,22 @@ class CategorySerializer(serializers.ModelSerializer):
 
         if obj.parent_id is None:
             return count_selectable_subcategories(obj)
-        return obj.children.count()
+        from user.taxonomy_v3 import ACTIVE_TYPE_SLUGS
+
+        return obj.children.filter(slug__in=ACTIVE_TYPE_SLUGS).count()
+
+    def get_productTypeCount(self, obj):
+        return self.get_subcategoryCount(obj)
+
+    def get_isActive(self, obj):
+        from user.taxonomy_v3 import is_nav_family, is_nav_type
+
+        return is_nav_family(obj) if obj.parent_id is None else is_nav_type(obj)
+
+    def get_isService(self, obj):
+        from user.taxonomy_v3 import is_service_category
+
+        return is_service_category(obj)
 
     def get_supplierCount(self, obj):
         if hasattr(obj, "supplier_count"):
@@ -903,6 +964,7 @@ class CategorySerializer(serializers.ModelSerializer):
                 products__category=obj,
                 products__is_active=True,
                 is_active=True,
+                is_ghost=False,
             )
             .distinct()
             .count()
@@ -918,8 +980,13 @@ class SubCategorySerializer(serializers.ModelSerializer):
     nameEn = serializers.CharField(source="name_en")
     nameFr = serializers.CharField(source="name_fr")
     sortOrder = serializers.IntegerField(source="sort_order")
+    isActive = serializers.SerializerMethodField()
+    isService = serializers.SerializerMethodField()
     parentSlug = serializers.CharField(source="parent.slug", read_only=True)
     parentNameEn = serializers.CharField(source="parent.name_en", read_only=True)
+    # Taxonomy v3 aliases (Type de produit / Famille).
+    familyId = serializers.SerializerMethodField()
+    familyNameFr = serializers.SerializerMethodField()
     categoryId = serializers.SerializerMethodField()
     categoryNameEn = serializers.SerializerMethodField()
     productCount = serializers.SerializerMethodField()
@@ -932,8 +999,12 @@ class SubCategorySerializer(serializers.ModelSerializer):
             "nameEn",
             "nameFr",
             "sortOrder",
+            "isActive",
+            "isService",
             "parentSlug",
             "parentNameEn",
+            "familyId",
+            "familyNameFr",
             "categoryId",
             "categoryNameEn",
             "productCount",
@@ -944,6 +1015,19 @@ class SubCategorySerializer(serializers.ModelSerializer):
 
         root = root_category_for(obj)
         return root.id if root else obj.parent_id
+
+    def get_familyId(self, obj):
+        return self.get_categoryId(obj)
+
+    def get_familyNameFr(self, obj):
+        from user.category_tree import root_category_for
+
+        root = root_category_for(obj)
+        if root:
+            return root.name_fr or root.name_en
+        if obj.parent_id:
+            return obj.parent.name_fr or obj.parent.name_en
+        return None
 
     def get_categoryNameEn(self, obj):
         from user.category_tree import root_category_for
@@ -957,6 +1041,16 @@ class SubCategorySerializer(serializers.ModelSerializer):
         if hasattr(obj, "active_product_count"):
             return obj.active_product_count
         return Product.objects.filter(subcategory=obj, is_active=True).count()
+
+    def get_isActive(self, obj):
+        from user.taxonomy_v3 import is_nav_type
+
+        return is_nav_type(obj)
+
+    def get_isService(self, obj):
+        from user.taxonomy_v3 import is_service_category
+
+        return is_service_category(obj)
 
 
 class SupplierListSerializer(serializers.ModelSerializer):
@@ -1554,6 +1648,7 @@ class SupplierDetailSerializer(SupplierListSerializer):
     productCardStyle = serializers.SerializerMethodField()
     listingCardFields = serializers.SerializerMethodField()
     pageDesign = serializers.SerializerMethodField()
+    quoteCategories = serializers.SerializerMethodField()
 
     class Meta(SupplierListSerializer.Meta):
         fields = [
@@ -1594,7 +1689,13 @@ class SupplierDetailSerializer(SupplierListSerializer):
             "productCardStyle",
             "listingCardFields",
             "pageDesign",
+            "quoteCategories",
         ]
+
+    def get_quoteCategories(self, obj):
+        from user.quote_forms import offered_category_payloads
+
+        return offered_category_payloads(obj)
 
     def get_pageDesign(self, obj):
         settings_obj = getattr(obj, "settings", None)
@@ -1602,6 +1703,7 @@ class SupplierDetailSerializer(SupplierListSerializer):
             return {
                 "storeHeaderTier": "standard",
                 "showStats": "true",
+                "showRating": "true",
                 "coverColor": obj.brand_color or "",
                 "useStoreHeaderInSearch": "false",
                 "samplesEnabled": "true",
@@ -1624,6 +1726,7 @@ class SupplierDetailSerializer(SupplierListSerializer):
         return {
             "storeHeaderTier": tier,
             "showStats": str(raw.get("showStats", "true")),
+            "showRating": str(raw.get("showRating", "true")),
             "coverColor": cover,
             "accentColor": str(raw.get("accentColor") or ""),
             "useStoreHeaderInSearch": "true" if use_in_search else "false",
@@ -2134,6 +2237,64 @@ class SupplierSampleRequestSerializer(serializers.ModelSerializer):
         return _request_photo_payload(obj, self.context.get("request"))
 
 
+class BuyerSampleRequestSerializer(serializers.ModelSerializer):
+    createdAt = serializers.SerializerMethodField()
+    createdAtIso = serializers.DateTimeField(source="created_at", read_only=True)
+    statusLabel = serializers.CharField(source="get_status_display", read_only=True)
+    productId = serializers.IntegerField(source="product_id", read_only=True)
+    productName = serializers.SerializerMethodField()
+    supplierId = serializers.IntegerField(source="supplier_id", read_only=True)
+    supplierName = serializers.CharField(source="supplier.company_name", read_only=True)
+    supplierLogo = serializers.SerializerMethodField()
+    location = serializers.SerializerMethodField()
+    deliveryAddress = serializers.CharField(source="delivery_address", read_only=True)
+    photos = serializers.SerializerMethodField()
+
+    class Meta:
+        model = SampleRequest
+        fields = [
+            "id",
+            "quantity",
+            "location",
+            "deliveryAddress",
+            "message",
+            "productId",
+            "productName",
+            "supplierId",
+            "supplierName",
+            "supplierLogo",
+            "status",
+            "statusLabel",
+            "photos",
+            "createdAt",
+            "createdAtIso",
+        ]
+
+    def get_createdAt(self, obj):
+        return obj.created_at.strftime("%d/%m/%Y")
+
+    def get_productName(self, obj):
+        return obj.product.name if obj.product_id and obj.product else ""
+
+    def get_location(self, obj):
+        address = (obj.delivery_address or "").strip()
+        if address:
+            return address.split(",")[0].strip()[:80]
+        if obj.supplier.wilaya:
+            return obj.supplier.get_wilaya_display()
+        return ""
+
+    def get_supplierLogo(self, obj):
+        request = self.context.get("request")
+        logo = obj.supplier.logo
+        if not logo:
+            return None
+        return request.build_absolute_uri(logo.url) if request else logo.url
+
+    def get_photos(self, obj):
+        return _request_photo_payload(obj, self.context.get("request"))
+
+
 class SupplierRfqSerializer(serializers.ModelSerializer):
     createdAt = serializers.SerializerMethodField()
     statusLabel = serializers.SerializerMethodField()
@@ -2143,6 +2304,11 @@ class SupplierRfqSerializer(serializers.ModelSerializer):
     hasResponse = serializers.SerializerMethodField()
     latestResponse = serializers.SerializerMethodField()
     photos = serializers.SerializerMethodField()
+    files = serializers.SerializerMethodField()
+    quantityUnit = serializers.CharField(source="quantity_unit", read_only=True)
+    categoryName = serializers.SerializerMethodField()
+    specs = serializers.SerializerMethodField()
+    physicalCustomization = serializers.SerializerMethodField()
 
     class Meta:
         model = RFQRequest
@@ -2153,21 +2319,55 @@ class SupplierRfqSerializer(serializers.ModelSerializer):
             "email",
             "phone",
             "quantityEstimate",
+            "quantityUnit",
             "destination",
             "message",
             "title",
             "productName",
+            "categoryName",
+            "specs",
+            "physicalCustomization",
             "createdAt",
             "status",
             "statusLabel",
             "hasResponse",
             "latestResponse",
             "photos",
+            "files",
             "created_at",
         ]
 
     def get_photos(self, obj):
         return _request_photo_payload(obj, self.context.get("request"))
+
+    def get_files(self, obj):
+        request = self.context.get("request")
+        rows = []
+        for item in obj.files.all():
+            url = item.file.url if item.file else ""
+            if request and url:
+                url = request.build_absolute_uri(url)
+            rows.append({
+                "id": item.id,
+                "name": item.original_name or "",
+                "url": url,
+            })
+        return rows
+
+    def get_categoryName(self, obj):
+        snapshot = obj.specs_snapshot or {}
+        if snapshot.get("category_name"):
+            return snapshot["category_name"]
+        if obj.category_id and obj.category:
+            return obj.category.name_fr or obj.category.name_en
+        return ""
+
+    def get_specs(self, obj):
+        return list((obj.specs_snapshot or {}).get("fields") or [])
+
+    def get_physicalCustomization(self, obj):
+        snapshot = obj.specs_snapshot or {}
+        return snapshot.get("physical_customization_label") or ""
 
     def get_createdAt(self, obj):
         return obj.created_at.strftime("%d/%m/%Y")
@@ -2200,6 +2400,11 @@ class SupplierRfqSerializer(serializers.ModelSerializer):
             "createdAtIso": response.created_at.isoformat(),
             "status": response.status,
             "statusLabel": response.get_status_display(),
+            "proposedPrice": response.proposed_price,
+            "moq": response.moq,
+            "leadTimeDays": response.lead_time_days,
+            "customizationFee": response.customization_fee,
+            "commercialTerms": response.commercial_terms,
         }
 
 
@@ -2361,7 +2566,12 @@ class OrderCreateSerializer(serializers.Serializer):
 
         scope = self._validate_trade(attrs)
         try:
-            product = Product.objects.get(pk=attrs["productId"], is_active=True)
+            product = Product.objects.get(
+                pk=attrs["productId"],
+                is_active=True,
+                supplier__is_active=True,
+                supplier__is_ghost=False,
+            )
         except Product.DoesNotExist:
             raise serializers.ValidationError({"productId": "Produit introuvable."})
         if attrs["quantity"] < product.min_order_quantity:
@@ -3035,9 +3245,15 @@ class SupplierSettingsSerializer(serializers.ModelSerializer):
         )
         if tier not in {"extra", "central", "mega"}:
             use_in_search = False
+        show_rating = str(value.get("showRating", "true")).lower() not in (
+            "false",
+            "0",
+            "no",
+        )
         value = {
             **value,
             "storeHeaderTier": tier,
+            "showRating": "true" if show_rating else "false",
             "useStoreHeaderInSearch": "true" if use_in_search else "false",
             "samplesEnabled": (
                 "true" if normalize_samples_enabled(value.get("samplesEnabled")) else "false"
@@ -3102,6 +3318,11 @@ class SupplierProposalRespondSerializer(serializers.Serializer):
         max_digits=12, decimal_places=2, required=False, allow_null=True
     )
     leadTimeDays = serializers.IntegerField(required=False, allow_null=True, min_value=1)
+    moq = serializers.IntegerField(required=False, allow_null=True, min_value=1)
+    customizationFee = serializers.DecimalField(
+        max_digits=12, decimal_places=2, required=False, allow_null=True, min_value=Decimal("0")
+    )
+    commercialTerms = serializers.CharField(required=False, allow_blank=True, max_length=4000)
 
     def validate_blocks(self, value):
         if value is None:
@@ -3159,6 +3380,15 @@ class QuoteResponseSerializer(serializers.ModelSerializer):
         source="proposed_price", max_digits=12, decimal_places=2, allow_null=True, read_only=True
     )
     leadTimeDays = serializers.IntegerField(source="lead_time_days", allow_null=True, read_only=True)
+    moq = serializers.IntegerField(allow_null=True, read_only=True)
+    customizationFee = serializers.DecimalField(
+        source="customization_fee",
+        max_digits=12,
+        decimal_places=2,
+        allow_null=True,
+        read_only=True,
+    )
+    commercialTerms = serializers.CharField(source="commercial_terms", read_only=True)
 
     class Meta:
         model = QuoteResponse
@@ -3170,6 +3400,9 @@ class QuoteResponseSerializer(serializers.ModelSerializer):
             "proposalBlocks",
             "proposedPrice",
             "leadTimeDays",
+            "moq",
+            "customizationFee",
+            "commercialTerms",
             "status",
             "statusLabel",
             "createdAt",

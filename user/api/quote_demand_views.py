@@ -57,7 +57,9 @@ from user.pragmadinar import (
     format_pragmadinar_amount,
     get_supplier_plan_code,
     opportunity_unlock_cost,
+    on_price_list,
     seed_pragmadinar_catalog,
+    tariff_display_cost,
     wallet_payload,
 )
 from user.quote_market import (
@@ -456,6 +458,20 @@ def _serialize_demand(demand, request, *, viewer="buyer", supplier=None):
         "marketRemovedReason": demand.market_removed_reason or None,
         "canRelaunch": buyer_can_relaunch(demand),
         "marketDays": PUBLIC_MARKET_DAYS,
+        "fromPaksuites": bool(demand.paksuites_component_id or demand.catalogue_line_id),
+        "paksuitesOptionTitle": (
+            demand.paksuites_component.option.title
+            if demand.paksuites_component_id
+            else demand.catalogue_line.ensemble.name
+            if demand.catalogue_line_id
+            else None
+        ),
+        "packagingProjectId": demand.packaging_project_id,
+        "packagingItemId": demand.packaging_item_id,
+        "packagingSpecVersion": demand.packaging_spec_version,
+        "currentSpecVersion": (
+            demand.packaging_item.spec_version if demand.packaging_item_id else None
+        ),
     }
 
     if viewer == "buyer":
@@ -490,6 +506,10 @@ def _serialize_demand(demand, request, *, viewer="buyer", supplier=None):
                 f"Demande publique — {engaged_count}/{PUBLIC_QUOTE_ENGAGED_CAP} "
                 "fournisseurs engagés"
             )
+        elif demand.paksuites_component_id:
+            payload["banner"] = (
+                "PakSuites — cette demande fait partie d'une solution d'emballage Paknomik"
+            )
         else:
             payload["banner"] = "Demande privée"
 
@@ -498,7 +518,14 @@ def _serialize_demand(demand, request, *, viewer="buyer", supplier=None):
 
 def _demand_queryset():
     return QuoteDemand.objects.select_related(
-        "buyer", "category", "subcategory"
+        "buyer",
+        "category",
+        "subcategory",
+        "packaging_item",
+        "paksuites_component",
+        "paksuites_component__option",
+        "catalogue_line",
+        "catalogue_line__ensemble",
     ).prefetch_related(
         Prefetch(
             "selections",
@@ -710,15 +737,33 @@ def _public_cooldown_payload(buyer):
     }
 
 
-def _notify_selected_suppliers(demand, suppliers):
+def _notify_selected_suppliers(demand, suppliers, *, origin="", origin_label=""):
     buyer_name = (
         demand.buyer.company_name
         or demand.buyer.get_full_name()
         or demand.buyer.username
     )
+    paksuites = origin == "paksuites"
+    combination = f" « {origin_label} »" if paksuites and origin_label else ""
     subject = (
-        "Nouvelle demande de devis — "
-        f"{_category_name(demand.subcategory)}"
+        "PakSuites — nouvelle demande de devis — "
+        if paksuites
+        else "Nouvelle demande de devis — "
+    ) + _category_name(demand.subcategory)
+    title = "PakSuites — vous êtes dans une solution" if paksuites else "Nouvelle demande de devis"
+    body = (
+        (
+            f"{buyer_name} vous a inclus dans une solution PakSuites{combination} "
+            f"({_category_name(demand.subcategory)}). "
+            "PakSuites est une invention Paknomik : l'acheteur compose son emballage, "
+            "et chaque composant devient une demande de devis."
+        )
+        if paksuites
+        else (
+            f"{buyer_name} vous a sélectionné pour une demande "
+            f"{demand.get_kind_display().lower()} "
+            f"({_category_name(demand.subcategory)})."
+        )
     )
     for supplier in suppliers:
         # Entreprise + contact + opportunité + activité sont créés dès la
@@ -728,19 +773,14 @@ def _notify_selected_suppliers(demand, suppliers):
             _notify(
                 user,
                 AppNotification.Kind.QUOTE_INVITED,
-                "Nouvelle demande de devis",
-                (
-                    f"{buyer_name} vous a sélectionné pour une demande "
-                    f"{demand.get_kind_display().lower()} "
-                    f"({_category_name(demand.subcategory)})."
-                ),
+                title,
+                body,
                 "/supplier/quotes",
                 demand,
             )
         message = (
             f"Bonjour {supplier.company_name},\n\n"
-            f"{buyer_name} vous a sélectionné pour une demande de devis "
-            f"{demand.get_kind_display().lower()}.\n\n"
+            f"{body}\n\n"
             f"Catégorie : {_category_name(demand.category)}\n"
             f"Sous-catégorie : {_category_name(demand.subcategory)}\n"
             f"Quantité : {demand.quantity}\n"
@@ -791,12 +831,13 @@ class PragmadinarCatalogView(APIView):
                 LISTING_CLASS_ORDER.index(row.service_class)
                 if row.service_class in LISTING_CLASS_ORDER
                 else len(LISTING_CLASS_ORDER),
-                row.price_rank if row.price_rank is not None else 999,
                 listing_order.get(row.code, len(listing_order)),
+                row.price_rank if row.price_rank is not None else 999,
                 row.label,
             ),
         )
         for row in rows:
+            cost = tariff_display_cost(row)
             services.append(
                 {
                     "code": row.code,
@@ -805,16 +846,17 @@ class PragmadinarCatalogView(APIView):
                         row.service_class, row.service_class
                     ),
                     "priceRank": row.price_rank,
+                    "onPriceList": on_price_list(row),
                     "unitLabel": row.unit_label,
                     "businessAccessLabel": access_label(row.business_access),
                     "genereuxAccessLabel": access_label(row.genereux_access, row.genereux_quota),
                     "walletCategory": row.wallet_category,
                     "label": row.label,
-                    "costPragmadinar": str(row.cost_pragmadinar),
+                    "costPragmadinar": f"{cost.quantize(Decimal('0.01'))}",
                     "unit": row.unit,
                     "unitQuantity": row.unit_quantity,
                     "costLabel": format_cost_label(
-                        row.cost_pragmadinar,
+                        cost,
                         row.unit,
                         row.unit_quantity,
                         row.unit_label,
@@ -947,7 +989,7 @@ class QuoteDemandCandidateSuppliersView(APIView):
                 {"error": "category ou subcategory est requis."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        filters = Q(is_active=True)
+        filters = Q(is_active=True, is_ghost=False)
         if subcategory_id:
             filters &= (
                 Q(interested_subcategories=subcategory_id)
@@ -981,6 +1023,39 @@ class QuoteDemandCooldownView(APIView):
                 **(payload or {}),
             }
         )
+
+
+def _link_market_quote_to_dossier(user, demand, data):
+    """Rattache un devis marché au projet ou à la fiche, si l'acheteur les possède."""
+    raw_project = data.get("packagingProjectId")
+    raw_item = data.get("packagingItemId")
+    if raw_project in (None, "") and raw_item in (None, ""):
+        return None
+    from buyer_space.models import BuyerAccount, PackagingItem, PackagingProject
+
+    try:
+        account = user.buyer_account
+    except BuyerAccount.DoesNotExist:
+        return "Compte acheteur requis."
+    item = None
+    project = None
+    if raw_item not in (None, ""):
+        item = PackagingItem.objects.filter(pk=raw_item, project__account=account).first()
+        if item is None:
+            return "Emballage introuvable."
+    if raw_project not in (None, ""):
+        project = PackagingProject.objects.filter(pk=raw_project, account=account).first()
+        if project is None:
+            return "Projet introuvable."
+    if item is not None and project is not None and item.project_id != project.id:
+        return "L'emballage n'appartient pas à ce projet."
+    if item is not None and project is None:
+        project = item.project
+    demand.packaging_project = project
+    demand.packaging_item = item
+    demand.packaging_spec_version = item.spec_version if item is not None else None
+    demand.save(update_fields=["packaging_project", "packaging_item", "packaging_spec_version"])
+    return None
 
 
 class BuyerQuoteDemandListCreateView(APIView):
@@ -1078,7 +1153,7 @@ class BuyerQuoteDemandListCreateView(APIView):
             attachment = strip_metadata(attachment) or attachment
 
         suppliers = list(
-            Supplier.objects.filter(pk__in=selected_ids, is_active=True).prefetch_related(
+            Supplier.objects.filter(pk__in=selected_ids, is_active=True, is_ghost=False).prefetch_related(
                 "users"
             )
         )
@@ -1125,6 +1200,11 @@ class BuyerQuoteDemandListCreateView(APIView):
         save_photos(QuoteDemandPhoto, "demand", demand, photos)
         for supplier in suppliers:
             QuoteDemandSelection.objects.create(demand=demand, supplier=supplier)
+
+        link_error = _link_market_quote_to_dossier(request.user, demand, request.data)
+        if link_error:
+            demand.delete()
+            return Response({"error": link_error}, status=status.HTTP_400_BAD_REQUEST)
 
         _notify_selected_suppliers(demand, suppliers)
         _log_quote_created(demand, [s.id for s in suppliers])
@@ -1730,12 +1810,29 @@ class SupplierQuoteDemandListView(APIView):
             )
             .distinct()
         )
+        serialized = [
+            _serialize_demand(d, request, viewer="supplier", supplier=supplier)
+            for d in demands
+        ]
         return Response(
-            [
-                _serialize_demand(d, request, viewer="supplier", supplier=supplier)
-                for d in demands
-            ]
+            {
+                "results": serialized,
+                "paksuites": _supplier_paksuites_performance(supplier),
+            }
         )
+
+
+def _supplier_paksuites_performance(supplier):
+    """X demandes reçues, dont Y issues d'une solution PakSuites."""
+    received = QuoteDemand.objects.filter(
+        Q(selections__supplier=supplier) | Q(engagements__supplier=supplier)
+    ).distinct()
+    return {
+        "quoteRequestCount": received.count(),
+        "paksuitesCount": received.filter(
+            Q(paksuites_component__isnull=False) | Q(catalogue_line__isnull=False)
+        ).count(),
+    }
 
 
 class SupplierOpportunityListView(APIView):
@@ -2075,7 +2172,14 @@ class QuoteNotificationsSeenView(APIView):
 
 
 def create_private_demand_from_rfq(
-    buyer, supplier, product, message, quantity_estimate=None, destination=""
+    buyer,
+    supplier,
+    product,
+    message,
+    quantity_estimate=None,
+    destination="",
+    origin="",
+    origin_label="",
 ):
     """Best-effort dual-write when a boutique RFQ has enough catalog data."""
     if not buyer:
@@ -2106,5 +2210,28 @@ def create_private_demand_from_rfq(
         **initial_market_fields(kind=QuoteDemand.Kind.PRIVATE, has_selections=True),
     )
     QuoteDemandSelection.objects.create(demand=demand, supplier=supplier)
-    _notify_selected_suppliers(demand, [supplier])
+    _notify_selected_suppliers(
+        demand, [supplier], origin=origin, origin_label=origin_label
+    )
     return demand
+
+
+class BuyerQuoteDemandRevalidateView(APIView):
+    """Records the current packaging sheet version on an existing quote."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        demand = (
+            _demand_queryset()
+            .filter(pk=pk, buyer=request.user)
+            .first()
+        )
+        if demand is None:
+            return Response({"error": "Demande introuvable."}, status=404)
+        if demand.packaging_item_id is None:
+            return Response({"error": "Ce devis n'est pas lié à une fiche."}, status=400)
+        demand.packaging_spec_version = demand.packaging_item.spec_version
+        demand.save(update_fields=["packaging_spec_version", "updated_at"])
+        demand = _demand_queryset().get(pk=demand.pk)
+        return Response(_serialize_demand(demand, request, viewer="buyer"))

@@ -1,0 +1,24 @@
+{% extends "user/base_auth.html" %}
+
+{% block title %}Formulaires de devis{% endblock %}
+
+{% block content %}
+<section style="max-width: 760px; margin: 24px auto; padding: 0 16px;">
+  <div class="dashboard-card" style="padding: 24px;">
+    <h1 style="color: #2a2142; margin-top: 0;">Formulaires de devis</h1>
+    <p>Personnalisez gratuitement les questions posées aux acheteurs, pour chaque type d'emballage.</p>
+    {% if not categories %}
+      <p>Ajoutez une catégorie ou un produit pour configurer un formulaire.</p>
+    {% else %}
+      <ul>
+        {% for row in categories %}
+          <li style="margin: 8px 0;">
+            <a href="{% url 'supplier_quote_form_edit' row.id %}">{{ row.name }}</a>
+            — unité : {{ row.quantityUnit }}
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

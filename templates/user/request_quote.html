@@ -1,0 +1,125 @@
+{% extends "user/base_auth.html" %}
+
+{% block title %}Demander un devis — {{ supplier.company_name }}{% endblock %}
+
+{% block content %}
+<section class="market-page" style="max-width: 760px; margin: 24px auto; padding: 0 16px;">
+  <div class="dashboard-card" style="padding: 24px;">
+    <h1 style="color: #2a2142; margin-top: 0;">Demander un devis</h1>
+    <p>{{ supplier.company_name }}</p>
+
+    {% if not categories %}
+      <p>Ce fournisseur n'a pas encore de formulaire de devis.</p>
+    {% elif not form %}
+      <form method="get">
+        <label class="form-label" for="category">Type d'emballage</label>
+        <select class="auth-select" id="category" name="category" required>
+          <option value="">Choisir</option>
+          {% for row in categories %}
+            <option value="{{ row.id }}">{{ row.name }}</option>
+          {% endfor %}
+        </select>
+        <button class="auth-button signup" type="submit" style="margin-top: 16px;">Continuer</button>
+      </form>
+    {% else %}
+      <p><strong>{{ form.title }}</strong> — quantité en {{ form.quantityUnit }}.</p>
+      {% if form.buyerInstructions %}
+        <p>{{ form.buyerInstructions }}</p>
+      {% endif %}
+      <p>Personnalisation physique : {{ form.physicalCustomizationLabel }}.</p>
+
+      <form method="post" enctype="multipart/form-data" id="quote-form">
+        {% csrf_token %}
+        <input type="hidden" name="category" value="{{ category.id }}">
+
+        <label class="form-label" for="name">Nom</label>
+        <input class="auth-input" id="name" name="name" value="{{ name }}" required>
+
+        <label class="form-label" for="phone">Téléphone</label>
+        <input class="auth-input" id="phone" name="phone" value="{{ request.user.phone_number|default:'' }}">
+
+        <label class="form-label" for="quantity">Quantité ({{ form.quantityUnit }})</label>
+        <input class="auth-input" id="quantity" name="quantity" type="number" min="1" required>
+
+        {% for field in form.fields %}
+          <div class="quote-field" style="margin-top: 12px;"
+               {% if field.condition %}
+                 data-condition-field="{{ field.condition.field }}"
+                 {% if field.condition.equals %}data-condition-equals="{{ field.condition.equals }}"{% endif %}
+                 {% if field.condition.not_equals %}data-condition-not="{{ field.condition.not_equals }}"{% endif %}
+                 {% if field.condition.in %}data-condition-in="{{ field.condition.in|join:',' }}"{% endif %}
+               {% endif %}>
+            <label class="form-label" for="spec_{{ field.key }}">
+              {{ field.label }}{% if field.unit %} ({{ field.unit }}){% endif %}{% if field.required %} *{% endif %}
+            </label>
+            {% if field.fieldType == "choice" %}
+              <select class="auth-select spec-input" id="spec_{{ field.key }}" name="spec_{{ field.key }}" data-key="{{ field.key }}" {% if field.required %}data-required="1"{% endif %}>
+                <option value="">Choisir</option>
+                {% for option in field.options %}
+                  <option value="{{ option }}">{{ option }}</option>
+                {% endfor %}
+              </select>
+            {% elif field.fieldType == "boolean" %}
+              <select class="auth-select spec-input" id="spec_{{ field.key }}" name="spec_{{ field.key }}" data-key="{{ field.key }}" {% if field.required %}data-required="1"{% endif %}>
+                <option value="">Choisir</option>
+                <option value="oui">Oui</option>
+                <option value="non">Non</option>
+              </select>
+            {% elif field.fieldType == "textarea" %}
+              <textarea class="auth-textarea spec-input" id="spec_{{ field.key }}" name="spec_{{ field.key }}" data-key="{{ field.key }}" {% if field.required %}data-required="1"{% endif %}></textarea>
+            {% elif field.fieldType == "number" %}
+              <input class="auth-input spec-input" id="spec_{{ field.key }}" name="spec_{{ field.key }}" type="number" step="any" min="0" data-key="{{ field.key }}" {% if field.required %}data-required="1"{% endif %}>
+            {% else %}
+              <input class="auth-input spec-input" id="spec_{{ field.key }}" name="spec_{{ field.key }}" data-key="{{ field.key }}" {% if field.required %}data-required="1"{% endif %}>
+            {% endif %}
+            {% if field.help %}<p>{{ field.help }}</p>{% endif %}
+          </div>
+        {% endfor %}
+
+        <label class="form-label" for="message">Message</label>
+        <textarea class="auth-textarea" id="message" name="message"></textarea>
+
+        <label class="form-label" for="photos">Photos</label>
+        <input id="photos" name="photos" type="file" accept="image/jpeg,image/png,image/webp" multiple>
+
+        <label class="form-label" for="files">Fichiers techniques (PDF)</label>
+        <input id="files" name="files" type="file" accept="application/pdf" multiple>
+
+        <button class="auth-button signup" type="submit" style="margin-top: 16px;">Envoyer la demande</button>
+      </form>
+    {% endif %}
+  </div>
+</section>
+<script>
+  (function () {
+    var inputs = document.querySelectorAll(".spec-input");
+    function valueOf(key) {
+      var node = document.querySelector('[data-key="' + key + '"]');
+      return node ? node.value.trim() : "";
+    }
+    function refresh() {
+      document.querySelectorAll(".quote-field").forEach(function (row) {
+        var field = row.getAttribute("data-condition-field");
+        var visible = true;
+        if (field) {
+          var current = valueOf(field);
+          var equals = row.getAttribute("data-condition-equals");
+          var notEquals = row.getAttribute("data-condition-not");
+          var allowed = row.getAttribute("data-condition-in");
+          if (!current) visible = false;
+          else if (equals) visible = current === equals;
+          else if (notEquals) visible = current !== notEquals;
+          else if (allowed) visible = allowed.split(",").indexOf(current) !== -1;
+        }
+        row.style.display = visible ? "" : "none";
+        row.querySelectorAll("[data-required='1']").forEach(function (input) {
+          if (visible) input.setAttribute("required", "required");
+          else input.removeAttribute("required");
+        });
+      });
+    }
+    inputs.forEach(function (input) { input.addEventListener("change", refresh); });
+    refresh();
+  })();
+</script>
+{% endblock %}

@@ -137,12 +137,12 @@ CATALOG_SERVICES = (
     _svc("intel.report_activity_annual", "commercial", "Rapport annuel d'activité", 8, UNIT_ONE_SHOT, 1, *_PAID, rank=4, unit_label=_REPORT),
     _svc("intel.market_performance", "commercial", "Comparatif de performance du marché", 5, UNIT_REQUEST, 1, *_PAID, rank=5, unit_label="Consultation"),
     _svc("intel.report_activity_semiannual", "commercial", "Rapport semestriel d'activité", "4.5", UNIT_ONE_SHOT, 1, *_PAID, rank=6, unit_label=_REPORT),
-    _svc("intel.report_monthly", "commercial", "Rapport mensuel PAKNOMIK", 4, UNIT_ONE_SHOT, 1, *_PAID, rank=7, unit_label=_REPORT),
+    _svc("intel.report_monthly", "commercial", "Rapport mensuel PAKNOMIK", 2, UNIT_ONE_SHOT, 1, *_PAID, rank=10, unit_label=_REPORT),
     _svc("intel.market_period", "commercial", "Analyse de marché — période sélectionnée", 3, UNIT_REQUEST, 1, *_PAID, rank=8, unit_label="Consultation"),
     _svc("intel.market_category", "commercial", "Analyse de marché — catégorie sélectionnée", 3, UNIT_REQUEST, 1, *_PAID, rank=8, unit_label="Consultation"),
     _svc("intel.benchmark_supplier", "commercial", "Benchmarking anonyme fournisseur", 2, UNIT_REQUEST, 1, *_PAID, rank=10, unit_label="Consultation"),
     _svc("intel.market_overview", "commercial", "Analyse de marché — vue d'ensemble", 2, UNIT_REQUEST, 1, *_PAID, rank=10, unit_label="Consultation"),
-    _svc("intel.report_activity_quarterly", "commercial", "Rapport trimestriel d'activité", 2, UNIT_ONE_SHOT, 1, *_PAID, rank=10, unit_label=_REPORT),
+    _svc("intel.report_activity_quarterly", "commercial", "Rapport trimestriel d'activité", 4, UNIT_ONE_SHOT, 1, *_PAID, rank=7, unit_label=_REPORT),
     _svc("intel.performance_compare", "commercial", "Comparatif de performance (mois/catégorie/produits)", "0.8", UNIT_REQUEST, 1, *_PAID, rank=13, unit_label="Consultation"),
     _svc("intel.report_activity_monthly", "commercial", "Rapport mensuel d'activité", "0.8", UNIT_ONE_SHOT, 1, *_PAID, rank=13, unit_label=_REPORT),
     _svc("intel.dashboard_previous", "commercial", "Tableau de bord période sélectionnée", "0.2", UNIT_REQUEST, 1, *_PAID, rank=15, unit_label="Consultation"),
@@ -156,7 +156,7 @@ CATALOG_SERVICES = (
     _svc("visibility.vitrine_mega_search", "promotion", "Vitrine Mega dans les résultats de recherche", 1, UNIT_VIEW, 1, *_PAID, rank=1, unit_label="Visite qualifiée"),
     _svc("promo.proposal_template", "promotion", "Nouveau modèle de proposition", 1, UNIT_ONE_SHOT, 1, *_PAID, rank=1, unit_label="Modèle"),
     _svc("commercial.category_leads", "promotion", "Accéder aux clients ayant un intérêt pour la catégorie du fournisseur", 1, UNIT_REQUEST, 1, *_PAID, rank=1, unit_label="Accès"),
-    _svc("promo.priority_subcategory", "promotion", "Apparition prioritaire dans la sous-catégorie", "0.8", UNIT_FEATURE, 1, ACCESS_PRAGMADINAR, ACCESS_QUOTA, 3, rank=4, unit_label="Produit / période"),
+    _svc("promo.priority_subcategory", "promotion", "Apparition prioritaire dans la sous-catégorie", "0.8", UNIT_VIEW, 1, *_PAID, rank=4, unit_label="Vue"),
     _svc("visibility.card_horizontal_colored_search", "promotion", "Carte de produit horizontale colorée dans les résultats de recherche", "0.6", UNIT_VIEW, 1, *_PAID, rank=5, unit_label="Visite qualifiée"),
     _svc("visibility.card_passport_colored_search", "promotion", "Carte de produit (passport) colorée dans les résultats de recherche", "0.6", UNIT_VIEW, 1, *_PAID, rank=5, unit_label="Visite qualifiée"),
     _svc("visibility.card_horizontal_search", "promotion", "Carte de produit horizontale dans les résultats de recherche", "0.5", UNIT_VIEW, 1, *_PAID, rank=7, unit_label="Visite qualifiée"),
@@ -164,17 +164,17 @@ CATALOG_SERVICES = (
     _svc("promo.sponsored_banner_conversation", "promotion", "Bannière verticale sponsorisée (conversation)", "0.5", UNIT_VIEW, 1, *_PAID, rank=7, unit_label="Visite qualifiée"),
     _svc("visibility.card_passport_search", "promotion", "Carte de produit (passport) dans les résultats de recherche", "0.4", UNIT_VIEW, 1, *_PAID, rank=10, unit_label="Visite qualifiée"),
     _svc("visibility.vitrine_extra_search", "promotion", "Vitrine extra dans les résultats de recherche", "0.4", UNIT_VIEW, 1, *_PAID, rank=10, unit_label="Visite qualifiée"),
-    _svc("promo.keyword_reservation", "promotion", "Réservation de mot-clé", "0.3", UNIT_FEATURE, 1, *_PAID, rank=12, unit_label="Mot-clé / période"),
+    _svc("promo.keyword_reservation", "promotion", "Réservation de mot-clé", "0.3", UNIT_VIEW, 1, *_PAID, rank=12, unit_label="Vue"),
     _svc("promo.sponsored_banner", "promotion", "Bannière horizontale sponsorisée (résultat de recherche)", "0.2", UNIT_VIEW, 1, *_PAID, rank=13, unit_label="Visite qualifiée"),
     _svc("promo.quote_template", "promotion", "Nouveau modèle devis", 5, UNIT_ONE_SHOT, 1, *_PAID, unit_label="Modèle"),
     # ── Visibilité ──────────────────────────────────────────────────────────
-    _svc("visibility.card_horizontal_colored", "visibility", "Carte de produit horizontale colorée", "0.6", UNIT_VISIT, 1, *_PAID, rank=1, unit_label="Vue qualifiée"),
-    _svc("visibility.card_horizontal", "visibility", "Carte de produit horizontale", "0.5", UNIT_VISIT, 1, *_PAID, rank=2, unit_label="Vue qualifiée"),
-    _svc("visibility.vitrine_mega", "visibility", "Vitrine Mega", "0.5", UNIT_VISIT, 1, *_PAID, rank=2, unit_label="Visite qualifiée"),
-    _svc("visibility.card_passport_colored", "visibility", "Carte de produit (passport) colorée", "0.45", UNIT_VISIT, 1, *_PAID, rank=4, unit_label="Vue qualifiée"),
-    _svc("visibility.vitrine_central", "visibility", "Vitrine centrale", "0.45", UNIT_VISIT, 1, *_PAID, rank=4, unit_label="Visite qualifiée"),
-    _svc("visibility.card_passport", "visibility", "Carte de produit (passport)", "0.4", UNIT_VISIT, 1, *_PAID, rank=6, unit_label="Vue qualifiée"),
-    _svc("visibility.vitrine_extra", "visibility", "Vitrine extra", "0.4", UNIT_VISIT, 1, *_PAID, rank=6, unit_label="Visite qualifiée"),
+    _svc("visibility.card_horizontal_colored", "visibility", "Carte de produit horizontale colorée (dans la boutique)", "0.6", UNIT_VISIT, 1, *_PAID, rank=1, unit_label="Vue qualifiée"),
+    _svc("visibility.card_horizontal", "visibility", "Carte de produit horizontale (dans la boutique)", "0.5", UNIT_VISIT, 1, *_PAID, rank=2, unit_label="Vue qualifiée"),
+    _svc("visibility.vitrine_mega", "visibility", "Vitrine Mega (dans la boutique)", "0.5", UNIT_VISIT, 1, *_PAID, rank=2, unit_label="Visite qualifiée"),
+    _svc("visibility.card_passport_colored", "visibility", "Carte de produit (passport) colorée (dans la boutique)", "0.45", UNIT_VISIT, 1, *_PAID, rank=4, unit_label="Vue qualifiée"),
+    _svc("visibility.vitrine_central", "visibility", "Vitrine centrale (dans la boutique)", "0.45", UNIT_VISIT, 1, *_PAID, rank=4, unit_label="Visite qualifiée"),
+    _svc("visibility.card_passport", "visibility", "Carte de produit (passport) (dans la boutique)", "0.4", UNIT_VISIT, 1, *_PAID, rank=6, unit_label="Vue qualifiée"),
+    _svc("visibility.vitrine_extra", "visibility", "Vitrine extra (dans la boutique)", "0.4", UNIT_VISIT, 1, *_PAID, rank=6, unit_label="Visite qualifiée"),
     _svc("visibility.store_favorited", "visibility", "Boutique ajoutée aux favoris", "0.4", UNIT_FEATURE, 1, *_PAID, rank=6, unit_label="Favori"),
     _svc("visibility.product_favorited", "visibility", "Produit ajouté aux favoris", "0.4", UNIT_FEATURE, 1, *_PAID, rank=6, unit_label="Favori"),
     _svc("visibility.store_visit", "visibility", "Visite de boutique", "0.3", UNIT_VISIT, 1, *_PAID, rank=10, unit_label="Visite qualifiée"),
@@ -184,14 +184,76 @@ CATALOG_SERVICES = (
     _svc("visibility.search_products", "visibility", "Apparition de produits dans les résultats de recherche", "0.1", UNIT_VIEW, 1, *_PAID, rank=13, unit_label="Apparition"),
     _svc("visibility.pdf_download", "visibility", "Téléchargement de fiche technique PDF", "0.1", UNIT_FEATURE, 1, *_PAID, rank=13, unit_label="Téléchargement"),
     _svc("visibility.product_count", "visibility", "Nombre de produits", 0, UNIT_MONTH_QUOTA, 1, ACCESS_BALANCE_POSITIVE, ACCESS_UNAVAILABLE, rank=16, unit_label="Produit"),
-    _svc("visibility.vitrine_standard", "visibility", "Vitrine standard", 0, UNIT_FEATURE, 1, ACCESS_UNLIMITED, ACCESS_UNAVAILABLE, rank=16, unit_label="Vue"),
+    _svc("visibility.vitrine_standard", "visibility", "Vitrine standard (dans la boutique)", 0, UNIT_FEATURE, 1, ACCESS_UNLIMITED, ACCESS_UNAVAILABLE, rank=16, unit_label="Vue"),
 )
+
+# Present in the catalog for metering, absent from the supplier price list.
+PRICE_LIST_OMITTED = frozenset({
+    "visibility.store_favorited",
+    "visibility.product_favorited",
+})
 
 # Removed from the listing and not billed by any feature: deactivated on seed.
 RETIRED_SERVICE_CODES = (
     "visibility.product_compared",
     "visibility.product_in_comparison",
 )
+
+# Visibility, orders, quotes, favorites, messaging and sponsored placements
+# stay available. They no longer deduct Pragmadinar.
+_UNBILLED_EXPLICIT = {
+    "commercial.quote_request",
+    "commercial.messaging",
+    "commercial.orders",
+    "promo.priority_subcategory",
+    "promo.keyword_reservation",
+    "promo.sponsored_banner",
+    "promo.sponsored_banner_conversation",
+}
+UNBILLED_SERVICE_CODES = frozenset(
+    row["code"]
+    for row in CATALOG_SERVICES
+    if row["code"].startswith("visibility.") or row["code"] in _UNBILLED_EXPLICIT
+)
+_CATALOG_LIST_PRICES = {
+    row["code"]: Decimal(str(row["cost_pragmadinar"])) for row in CATALOG_SERVICES
+}
+
+
+def on_price_list(service) -> bool:
+    code = getattr(service, "code", None)
+    rank = getattr(service, "price_rank", None)
+    return rank is not None and code not in PRICE_LIST_OMITTED
+
+
+# Strategy objectives follow the tariff classes, not the billing wallet.
+# Search vitrines and search cards are Promotion on the price list.
+_TARIFF_CLASS_WALLET = {
+    "visibility": "visibility",
+    "promotion": "promotion",
+    "commercial": "analytics",
+}
+_CATALOG_BY_CODE = {row["code"]: row for row in CATALOG_SERVICES}
+
+
+def strategy_wallet_for_code(code: str) -> str | None:
+    row = _CATALOG_BY_CODE.get(code)
+    if not row or row["price_rank"] is None or code in PRICE_LIST_OMITTED:
+        return None
+    return _TARIFF_CLASS_WALLET.get(row["service_class"])
+
+
+def tariff_display_cost(service) -> Decimal:
+    """Official price-list amount.
+
+    Unbilled services are stored at 0 so usage does not debit. The listing
+    still shows the catalog rate.
+    """
+    if getattr(service, "code", None) in UNBILLED_SERVICE_CODES:
+        listed = _CATALOG_LIST_PRICES.get(service.code)
+        if listed is not None:
+            return listed
+    return Decimal(str(service.cost_pragmadinar))
 
 
 def plain_amount(value) -> str:
@@ -320,6 +382,35 @@ def _new_reference(prefix="PKO"):
     return f"{prefix}-{uuid.uuid4().hex[:12].upper()}"
 
 
+def _supplier_balance_total(supplier):
+    from django.db.models import Sum
+
+    from user.models import PragmadinarWallet
+
+    total = PragmadinarWallet.objects.filter(supplier=supplier).aggregate(
+        total=Sum("balance")
+    )["total"]
+    return total or Decimal("0")
+
+
+def _cover_debit_from_other_wallets(wallets, target, amount, *, actor=None):
+    """Move free balance into the service wallet so one supplier total can pay any remaining service."""
+    need = amount - (target.balance - target.held_total)
+    if need <= 0:
+        return
+    for source in wallets:
+        if source.pk == target.pk:
+            continue
+        free = source.balance - source.held_total
+        if free <= 0:
+            continue
+        move = min(free, need)
+        _record_wallet_transfer(source, target, move, actor=actor)
+        need -= move
+        if need <= 0:
+            return
+
+
 def _existing_entry(supplier, idempotency_key):
     from user.models import PragmadinarLedger
 
@@ -354,21 +445,32 @@ def debit_service(
     """
     from user.models import PragmadinarLedger, PragmadinarWallet
 
+    if service_code in UNBILLED_SERVICE_CODES:
+        return None
+
     service = get_service(service_code)
     assert_service_available(supplier, service)
     amount = service.cost_pragmadinar * Decimal(str(quantity))
     category = wallet_category or service.wallet_category
-    wallet = get_or_create_wallet(supplier, category=category)
-    wallet = PragmadinarWallet.objects.select_for_update().get(pk=wallet.pk)
+    get_or_create_wallet(supplier, category=category)
+    wallets = list(
+        PragmadinarWallet.objects.select_for_update().filter(supplier=supplier)
+    )
+    wallet = next(row for row in wallets if row.category == category)
+    balance_before = sum((row.balance for row in wallets), Decimal("0"))
 
     replay = _existing_entry(supplier, idempotency_key)
     if replay is not None:
         return replay
 
-    available = wallet.balance - wallet.held_total
-    if amount > 0 and available < amount:
-        raise InsufficientPragmadinar(amount, available)
     if amount > 0:
+        _cover_debit_from_other_wallets(wallets, wallet, amount, actor=actor)
+        available = wallet.balance - wallet.held_total
+        if available < amount:
+            total_available = sum(
+                (row.balance - row.held_total for row in wallets), Decimal("0")
+            )
+            raise InsufficientPragmadinar(amount, total_available)
         wallet.balance -= amount
         wallet.spent_total += amount
         wallet.save(update_fields=["balance", "spent_total", "updated_at"])
@@ -380,6 +482,8 @@ def debit_service(
         entry_type=PragmadinarLedger.EntryType.SPEND,
         status=PragmadinarLedger.Status.POSTED,
         amount=-amount,
+        balance_before=balance_before,
+        balance_after=balance_before - amount,
         rate_dzd=pragmadinar_rate_dzd(),
         amount_dzd=pragmadinar_to_dzd(amount),
         reference=_new_reference(),
@@ -404,17 +508,29 @@ def hold_service(
     actor=None,
     wallet_category=None,
     quantity=1,
+    amount=None,
 ):
     """Reserve the price without spending it.
 
     Used by Pak-dating: the amount is only definitively debited once the buyer
     answers, and released automatically on refusal or expiry.
+
+    `amount` reserves a catalog price even when the service is unbilled for
+    live usage. Without it, unbilled services are not held.
     """
     from user.models import PragmadinarLedger, PragmadinarWallet
 
+    if amount is None and service_code in UNBILLED_SERVICE_CODES:
+        return None
+
     service = get_service(service_code)
     assert_service_available(supplier, service)
-    amount = service.cost_pragmadinar * Decimal(str(quantity))
+    if amount is None:
+        amount = service.cost_pragmadinar * Decimal(str(quantity))
+    else:
+        amount = Decimal(str(amount))
+    if amount <= 0:
+        return None
     wallet = get_or_create_wallet(
         supplier, category=wallet_category or service.wallet_category
     )
@@ -549,17 +665,30 @@ def refund_entry(entry, *, actor=None, reason="Remboursement technique"):
     )
 
 
-WELCOME_GRANT_IDEMPOTENCY_PREFIX = "bootstrap:grant100:v1:"
+WELCOME_GRANT_IDEMPOTENCY_PREFIX = "bootstrap:grant200:v1:"
 LEGACY_WELCOME_GRANT_PREFIX = "bootstrap:grant500:v1:"
+PREVIOUS_WELCOME_GRANT_PREFIX = "bootstrap:grant100:v1:"
+BALANCE_RESET_PREFIX = "admin:balance-reset-200:v1:"
+WELCOME_BALANCE = Decimal("200")
 
 
 def _welcome_grant_already_applied(supplier) -> bool:
+    from django.db.models import Q
+
     from user.models import PragmadinarLedger
 
+    prefixes = (
+        WELCOME_GRANT_IDEMPOTENCY_PREFIX,
+        PREVIOUS_WELCOME_GRANT_PREFIX,
+        LEGACY_WELCOME_GRANT_PREFIX,
+    )
+    query = Q()
+    for prefix in prefixes:
+        query |= Q(idempotency_key__startswith=f"{prefix}{supplier.pk}")
     return PragmadinarLedger.objects.filter(
+        query,
         wallet__supplier=supplier,
         entry_type=PragmadinarLedger.EntryType.GRANT,
-        idempotency_key__startswith=f"{WELCOME_GRANT_IDEMPOTENCY_PREFIX}{supplier.pk}",
     ).exists()
 
 
@@ -607,11 +736,9 @@ def normalize_legacy_welcome_grant(supplier):
 
 @transaction.atomic
 def grant_supplier_welcome_pragmadinar(supplier, *, actor=None):
-    """Idempotent welcome credit (100 Pragmadinar by default, configurable)."""
+    """Idempotent welcome credit: 200 Pragmadinar once, on a single wallet."""
     from user.models import PragmadinarLedger
     from user.platform_config import supplier_welcome_pragmadinar
-
-    normalize_legacy_welcome_grant(supplier)
 
     amount = supplier_welcome_pragmadinar()
     if amount <= 0:
@@ -620,27 +747,16 @@ def grant_supplier_welcome_pragmadinar(supplier, *, actor=None):
     if _welcome_grant_already_applied(supplier):
         return None
 
-    categories = ("visibility", "analytics", "promotion")
-    share = (amount / Decimal("3")).quantize(Decimal("0.01"))
-    entries = []
-    assigned = Decimal("0")
-    for index, category in enumerate(categories):
-        portion = amount - assigned if index == len(categories) - 1 else share
-        assigned += portion
-        entries.append(
-            credit_wallet(
-                supplier,
-                portion,
-                reason="Crédit de bienvenue Pragmadinar",
-                entry_type=PragmadinarLedger.EntryType.GRANT,
-                idempotency_key=(
-                    f"{WELCOME_GRANT_IDEMPOTENCY_PREFIX}{supplier.pk}:{category}"
-                ),
-                actor=actor,
-                wallet_category=category,
-            )
-        )
-    return entries
+    entry = credit_wallet(
+        supplier,
+        amount,
+        reason="Crédit de bienvenue Pragmadinar",
+        entry_type=PragmadinarLedger.EntryType.GRANT,
+        idempotency_key=f"{WELCOME_GRANT_IDEMPOTENCY_PREFIX}{supplier.pk}",
+        actor=actor,
+        wallet_category="visibility",
+    )
+    return [entry]
 
 
 @transaction.atomic
@@ -669,6 +785,7 @@ def credit_wallet(
         return replay
 
     kind = entry_type or PragmadinarLedger.EntryType.PURCHASE
+    balance_before = _supplier_balance_total(supplier)
     wallet.balance += amount
     fields = ["balance", "updated_at"]
     if kind == PragmadinarLedger.EntryType.GRANT:
@@ -685,6 +802,8 @@ def credit_wallet(
         entry_type=kind,
         status=PragmadinarLedger.Status.POSTED,
         amount=amount,
+        balance_before=balance_before,
+        balance_after=balance_before + amount,
         rate_dzd=pragmadinar_rate_dzd(),
         amount_dzd=pragmadinar_to_dzd(amount),
         reference=_new_reference("CRD"),
@@ -903,3 +1022,177 @@ def seed_pragmadinar_catalog():
     for row in CATALOG_SERVICES:
         PragmadinarService.objects.update_or_create(code=row["code"], defaults=row)
     PragmadinarService.objects.filter(code__in=RETIRED_SERVICE_CODES).update(is_active=False)
+    PragmadinarService.objects.filter(code__in=UNBILLED_SERVICE_CODES).update(
+        cost_pragmadinar=Decimal("0"),
+    )
+
+
+def _lock_supplier_wallets(supplier):
+    from user.models import PragmadinarWallet
+
+    for category in WALLET_CATEGORIES:
+        get_or_create_wallet(supplier, category=category)
+    return list(PragmadinarWallet.objects.select_for_update().filter(supplier=supplier))
+
+
+def _write_adjustment(wallet, *, amount, before, after, reason, actor, idempotency_key, ref_type):
+    from user.models import PragmadinarLedger
+
+    return PragmadinarLedger.objects.create(
+        wallet=wallet,
+        service=None,
+        entry_type=PragmadinarLedger.EntryType.ADJUSTMENT,
+        status=PragmadinarLedger.Status.POSTED,
+        amount=amount,
+        balance_before=before,
+        balance_after=after,
+        rate_dzd=pragmadinar_rate_dzd(),
+        amount_dzd=pragmadinar_to_dzd(abs(amount)),
+        reference=_new_reference("ADJ"),
+        idempotency_key=idempotency_key,
+        reason=reason[:255],
+        ref_type=ref_type,
+        refundable=False,
+        created_by=actor if getattr(actor, "is_authenticated", False) else None,
+    )
+
+
+def _reduce_total(wallets, remaining):
+    """Remove `remaining` from wallet balances. Caps holds when free balance is not enough."""
+    ordered = sorted(wallets, key=lambda row: 0 if row.category == "visibility" else 1)
+    for wallet in ordered:
+        if remaining <= 0:
+            break
+        free = wallet.balance - wallet.held_total
+        if free <= 0:
+            continue
+        cut = min(free, remaining)
+        wallet.balance -= cut
+        wallet.save(update_fields=["balance", "updated_at"])
+        remaining -= cut
+    for wallet in ordered:
+        if remaining <= 0:
+            break
+        if wallet.balance <= 0:
+            continue
+        cut = min(wallet.balance, remaining)
+        wallet.balance -= cut
+        if wallet.held_total > wallet.balance:
+            wallet.held_total = wallet.balance
+        wallet.save(update_fields=["balance", "held_total", "updated_at"])
+        remaining -= cut
+    return remaining
+
+
+@transaction.atomic
+def reset_supplier_balance(supplier, *, reason, actor=None):
+    """Set this supplier's total balance to 200 exactly once."""
+    from user.models import PragmadinarLedger
+
+    key = f"{BALANCE_RESET_PREFIX}{supplier.pk}"
+    if PragmadinarLedger.objects.filter(
+        wallet__supplier=supplier, idempotency_key=key
+    ).exists():
+        return None
+    wallets = _lock_supplier_wallets(supplier)
+    before = sum((row.balance for row in wallets), Decimal("0"))
+    delta = WELCOME_BALANCE - before
+    visibility = next(row for row in wallets if row.category == "visibility")
+    if delta > 0:
+        visibility.balance += delta
+        visibility.save(update_fields=["balance", "updated_at"])
+    elif delta < 0:
+        _reduce_total(wallets, -delta)
+    after = _supplier_balance_total(supplier)
+    visibility.refresh_from_db()
+    return _write_adjustment(
+        visibility,
+        amount=after - before,
+        before=before,
+        after=after,
+        reason=reason,
+        actor=actor,
+        idempotency_key=key,
+        ref_type="balance_reset",
+    )
+
+
+def reset_all_supplier_balances(*, apply=False, reason=""):
+    """Dry-run unless apply is true. Never called on startup."""
+    from user.models import PragmadinarLedger, Supplier
+
+    reason = reason or "Remise administrative du solde à 200 Pragmadinar"
+    report = []
+    for supplier in Supplier.objects.all().order_by("pk"):
+        key = f"{BALANCE_RESET_PREFIX}{supplier.pk}"
+        already = PragmadinarLedger.objects.filter(
+            wallet__supplier=supplier, idempotency_key=key
+        ).exists()
+        before = _supplier_balance_total(supplier)
+        row = {
+            "supplier_id": supplier.pk,
+            "company_name": supplier.company_name,
+            "previous_balance": before,
+            "new_balance": before if already else WELCOME_BALANCE,
+            "already_reset": already,
+        }
+        if apply and not already:
+            reset_supplier_balance(supplier, reason=reason)
+            row["new_balance"] = _supplier_balance_total(supplier)
+        report.append(row)
+    return report
+
+
+@transaction.atomic
+def adjust_supplier_balance(supplier, *, mode, amount, reason, actor):
+    """Add, subtract, or set the supplier total. One adjustment ledger row."""
+    from user.models import PragmadinarLedger
+
+    reason = (reason or "").strip()
+    if not reason:
+        raise ValidationError({"error": "Le motif est obligatoire.", "code": "reason_required"})
+    if mode not in {"add", "subtract", "set"}:
+        raise ValidationError({"error": "Mode d'ajustement inconnu.", "code": "invalid_mode"})
+    try:
+        amount = Decimal(str(amount))
+    except (InvalidOperation, TypeError) as exc:
+        raise ValidationError({"error": "Montant invalide.", "code": "invalid_amount"}) from exc
+    if amount < 0 or (mode != "set" and amount == 0):
+        raise ValidationError({"error": "Le montant doit être positif.", "code": "invalid_amount"})
+
+    wallets = _lock_supplier_wallets(supplier)
+    before = sum((row.balance for row in wallets), Decimal("0"))
+    visibility = next(row for row in wallets if row.category == "visibility")
+    if mode == "set":
+        delta = amount - before
+    elif mode == "add":
+        delta = amount
+    else:
+        free = sum((row.balance - row.held_total for row in wallets), Decimal("0"))
+        if amount > free:
+            raise ValidationError(
+                {
+                    "error": "Le retrait dépasse le solde disponible.",
+                    "code": "insufficient_pragmadinars",
+                }
+            )
+        delta = -amount
+
+    if delta > 0:
+        visibility.balance += delta
+        visibility.save(update_fields=["balance", "updated_at"])
+    elif delta < 0:
+        _reduce_total(wallets, -delta)
+    after = _supplier_balance_total(supplier)
+    visibility.refresh_from_db()
+    entry = _write_adjustment(
+        visibility,
+        amount=after - before,
+        before=before,
+        after=after,
+        reason=reason,
+        actor=actor,
+        idempotency_key="",
+        ref_type="admin_adjustment",
+    )
+    return entry

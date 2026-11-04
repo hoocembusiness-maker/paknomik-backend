@@ -43,6 +43,8 @@ AUDIT_READ = "audit.read"
 CONSENT_MANAGE = "consent.manage"
 COMMISSIONS_READ = "commissions.read"
 COMMISSIONS_MANAGE = "commissions.manage"
+PILOTAGE_ACCESS = "pilotage.access"
+PILOTAGE_MANAGE = "pilotage.manage"
 
 ALL_PERMISSIONS = [
     USERS_READ,
@@ -75,6 +77,8 @@ ALL_PERMISSIONS = [
     CONSENT_MANAGE,
     COMMISSIONS_READ,
     COMMISSIONS_MANAGE,
+    PILOTAGE_ACCESS,
+    PILOTAGE_MANAGE,
 ]
 
 # ── Roles ───────────────────────────────────────────────────────────────────
@@ -86,6 +90,7 @@ ADMIN_SUPPORT = "ADMIN_SUPPORT"
 ADMIN_FINANCE = "ADMIN_FINANCE"
 ANALYST = "ANALYST"
 CONTENT_MODERATOR = "CONTENT_MODERATOR"
+ADMIN_PILOTAGE = "ADMIN_PILOTAGE"
 
 ROLE_DEFINITIONS = {
     ULTRA_ADMIN: {
@@ -159,6 +164,12 @@ ROLE_DEFINITIONS = {
         "label": "Modérateur de contenu",
         "permissions": [
             MODERATION_MANAGE,
+        ],
+    },
+    ADMIN_PILOTAGE: {
+        "label": "Administrateur pilotage",
+        "permissions": [
+            PILOTAGE_ACCESS,
         ],
     },
 }

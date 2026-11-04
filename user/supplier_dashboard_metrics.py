@@ -1,9 +1,15 @@
-"""Supplier dashboard scorecards.
+"""Supplier dashboard scorecards (vue d'ensemble).
+
+Market denominator (``whole``)
+------------------------------
+Percentage cards divide the supplier's volume by **all active, non-ghost
+suppliers** on the platform. Same-subcategory peer groups are reserved for the
+anonymous category benchmark, which requires selecting exactly one subcategory.
 
 Subcategory filter
 ------------------
-« Toutes » counts the supplier's own subcategories (active products and declared
-interests). A chosen subcategory keeps only events that belong to it.
+« Toutes » keeps every event. A chosen subcategory keeps only events that belong
+to it (volumes and the matching platform-wide denominator both follow the filter).
 
 Events that cannot be attached to one subcategory are excluded from that filter
 and stay in « Toutes »:
@@ -77,7 +83,7 @@ LABELS = {
     "categories": "Catégorie",
     "products": "Produit",
     "competitors": "Concurrents directs",
-    "pragmadinar": "Pragmadinar",
+    "pragmadinar": "Pragmadinar consommés",
     "orders": "Commande",
     "quotes": "Demande de devis",
     "samples": "Demande d'échantillon",
@@ -173,11 +179,20 @@ def _subcategory_options(supplier: Supplier) -> list[Category]:
     )
 
 
+def _platform_supplier_ids() -> set[int]:
+    """All active non-ghost suppliers — denominator for the overview dashboard."""
+    return set(
+        Supplier.objects.filter(is_active=True, is_ghost=False).values_list("id", flat=True)
+    )
+
+
 def _market_supplier_ids(supplier: Supplier, subcategory_id: int | None) -> set[int]:
+    """Same-subcategory peers — used by the anonymous category benchmark only."""
     if subcategory_id:
         found = set(
             Supplier.objects.filter(
                 is_active=True,
+                is_ghost=False,
                 products__is_active=True,
                 products__subcategory_id=subcategory_id,
             ).values_list("id", flat=True)
@@ -191,6 +206,7 @@ def _market_supplier_ids(supplier: Supplier, subcategory_id: int | None) -> set[
             found = set(
                 Supplier.objects.filter(
                     is_active=True,
+                    is_ghost=False,
                     products__is_active=True,
                     products__subcategory_id__in=subcategory_ids,
                 ).values_list("id", flat=True)
@@ -501,14 +517,13 @@ def _visibility_block(
     }
 
 
-def _rate_metric(key: str, current_part: int, current_whole: int, previous_part: int, previous_whole: int, *, masked: bool):
+def _rate_metric(key: str, current_part: int, current_whole: int, previous_part: int, previous_whole: int):
     current_rate = _share(current_part, current_whole)
     previous_rate = _share(previous_part, previous_whole)
     return _metric(
         key,
         _pct_label(current_rate),
         _variation(current_rate, previous_rate),
-        masked=masked,
     )
 
 
@@ -519,7 +534,9 @@ def build_supplier_dashboard_sections(
 ) -> dict:
     options = _subcategory_options(supplier)
     selected = next((item for item in options if item.pk == subcategory_id), None)
-    market_ids = _market_supplier_ids(supplier, selected.pk if selected else None)
+    # Overview shares use the whole platform; subcategory peers stay in the benchmark.
+    market_ids = _platform_supplier_ids()
+    market_ids.add(supplier.id)
     minimum = _min_suppliers()
     masked = len(market_ids) < minimum
     supplier_id = supplier.id
@@ -592,7 +609,6 @@ def build_supplier_dashboard_sections(
             appear_market,
             appear_prev,
             appear_market_prev,
-            masked=masked,
         ),
         _metric("all_visits", str(visits_now), _variation(visits_now, visits_prev)),
         _rate_metric(
@@ -601,7 +617,6 @@ def build_supplier_dashboard_sections(
             visits_market,
             visits_prev,
             visits_market_prev,
-            masked=masked,
         ),
         _metric(
             "interactions",
@@ -622,7 +637,6 @@ def build_supplier_dashboard_sections(
             store_market,
             store_prev,
             store_market_prev,
-            masked=masked,
         ),
         _metric("store_visits", str(store_visits_now), _variation(store_visits_now, store_visits_prev)),
         _rate_metric(
@@ -631,7 +645,6 @@ def build_supplier_dashboard_sections(
             store_visits_market,
             store_visits_prev,
             store_visits_market_prev,
-            masked=masked,
         ),
         _metric("product_visits", str(product_now), _variation(product_now, product_prev)),
         _rate_metric(
@@ -640,7 +653,6 @@ def build_supplier_dashboard_sections(
             product_market,
             product_prev,
             product_market_prev,
-            masked=masked,
         ),
         _metric(
             "product_search_appearances",
@@ -653,7 +665,6 @@ def build_supplier_dashboard_sections(
             product_appear_market,
             product_appear_prev,
             product_appear_market_prev,
-            masked=masked,
         ),
     ]
 
@@ -669,7 +680,7 @@ def build_supplier_dashboard_sections(
         )
     product_count = supplier.products.filter(is_active=True).count()
     competitors = count_direct_competitors(supplier, cap=20)
-    balance = wallet_payload(supplier)["balance"]
+    consumed = wallet_payload(supplier)["spentTotal"]
     followers = BuyerFavoriteSupplier.objects.filter(supplier_id=supplier_id).count()
 
     activity = [
@@ -678,7 +689,7 @@ def build_supplier_dashboard_sections(
         {"key": "categories", "label": LABELS["categories"], "value": str(category_count)},
         {"key": "products", "label": LABELS["products"], "value": str(product_count)},
         {"key": "competitors", "label": LABELS["competitors"], "value": str(competitors)},
-        {"key": "pragmadinar", "label": LABELS["pragmadinar"], "value": _compact_amount(balance)},
+        {"key": "pragmadinar", "label": LABELS["pragmadinar"], "value": _compact_amount(consumed)},
         {"key": "orders", "label": LABELS["orders"], "value": str(orders_now)},
         {"key": "quotes", "label": LABELS["quotes"], "value": str(quotes_now)},
         {"key": "samples", "label": LABELS["samples"], "value": str(samples_now)},

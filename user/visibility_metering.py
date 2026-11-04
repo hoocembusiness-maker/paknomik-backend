@@ -86,8 +86,15 @@ def _meter_pragmadinar_catalog_units(
     from django.core.cache import cache
 
     from user.entitlements import _period
-    from user.pragmadinar import InsufficientPragmadinar, debit_service, get_service
+    from user.pragmadinar import (
+        UNBILLED_SERVICE_CODES,
+        InsufficientPragmadinar,
+        debit_service,
+        get_service,
+    )
 
+    if service_code in UNBILLED_SERVICE_CODES:
+        return
     service = get_service(service_code)
     unit_qty = max(int(service.unit_quantity or 1), 1)
     year, month = _period()

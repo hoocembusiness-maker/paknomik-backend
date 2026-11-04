@@ -241,11 +241,9 @@ class PragmadinarWalletTests(TestCase):
         from user.pragmadinar import grant_supplier_welcome_pragmadinar
 
         entries = grant_supplier_welcome_pragmadinar(self.supplier)
-        self.assertEqual(
-            {entry.wallet.category for entry in entries}, {"visibility", "analytics", "promotion"}
-        )
-        self.assertEqual(sum(entry.amount for entry in entries), Decimal("100"))
-        self.assertEqual(sum(entry.amount_dzd for entry in entries), Decimal("20000.00"))
+        self.assertEqual({entry.wallet.category for entry in entries}, {"visibility"})
+        self.assertEqual(sum(entry.amount for entry in entries), Decimal("200"))
+        self.assertEqual(sum(entry.amount_dzd for entry in entries), Decimal("40000.00"))
 
     def test_format_pragmadinar_amount_uses_cent_precision(self):
         from user.pragmadinar import format_pragmadinar_amount, wallet_payload
@@ -259,7 +257,7 @@ class PragmadinarWalletTests(TestCase):
     def test_supplier_welcome_pragmadinar_defaults_to_100(self):
         from user.platform_config import supplier_welcome_pragmadinar
 
-        self.assertEqual(supplier_welcome_pragmadinar(), Decimal("100"))
+        self.assertEqual(supplier_welcome_pragmadinar(), Decimal("200"))
 
     def test_welcome_grant_is_idempotent(self):
         from user.pragmadinar import grant_supplier_welcome_pragmadinar
@@ -268,8 +266,8 @@ class PragmadinarWalletTests(TestCase):
         second = grant_supplier_welcome_pragmadinar(self.supplier)
         self.assertIsNotNone(first)
         self.assertIsNone(second)
-        self.assertEqual(self._total("balance"), Decimal("100"))
-        self.assertEqual(self._total("granted_total"), Decimal("100"))
+        self.assertEqual(self._total("balance"), Decimal("200"))
+        self.assertEqual(self._total("granted_total"), Decimal("200"))
 
     def test_legacy_grant500_normalized_to_welcome_amount(self):
         from user.models import PragmadinarLedger
@@ -292,13 +290,13 @@ class PragmadinarWalletTests(TestCase):
 
         normalize_legacy_welcome_grant(self.supplier)
         wallet.refresh_from_db()
-        self.assertEqual(wallet.balance, Decimal("100"))
-        self.assertEqual(wallet.granted_total, Decimal("100"))
+        self.assertEqual(wallet.balance, Decimal("200"))
+        self.assertEqual(wallet.granted_total, Decimal("200"))
         entry = PragmadinarLedger.objects.get(
             wallet=wallet,
-            idempotency_key=f"bootstrap:grant100:v1:{self.supplier.pk}",
+            idempotency_key=f"bootstrap:grant200:v1:{self.supplier.pk}",
         )
-        self.assertEqual(entry.amount, Decimal("100"))
+        self.assertEqual(entry.amount, Decimal("200"))
 
     def test_rate_is_configurable(self):
         set_setting("pragmadinar_rate_dzd", "150")
@@ -316,11 +314,10 @@ class PragmadinarWalletTests(TestCase):
             debit_service(self.supplier, OPPORTUNITY_CODE, reason="test")
         self.assertEqual(self._wallet().balance, partial)
 
-    def test_debit_uses_the_wallet_of_the_service_category(self):
+    def test_debit_can_draw_on_the_supplier_total(self):
         credit_wallet(self.supplier, 50, wallet_category="visibility")
-        with self.assertRaises(InsufficientPragmadinar):
-            debit_service(self.supplier, OPPORTUNITY_CODE)
-        self.assertEqual(get_or_create_wallet(self.supplier).balance, Decimal("50"))
+        debit_service(self.supplier, OPPORTUNITY_CODE)
+        self.assertEqual(self._total("balance"), Decimal("50") - self.lead_cost)
 
     def test_debit_records_amount_reference_and_dinar_equivalent(self):
         self._credit(50)
@@ -1101,14 +1098,16 @@ class AnalyticsReportTests(TestCase):
         self.assertEqual(response.status_code, 402)
         self.assertEqual(response.data["code"], "insufficient_pragmadinars")
 
-    def test_reports_are_paid_from_the_analytics_wallet(self):
+    def test_empty_analytics_wallet_is_covered_by_other_wallets(self):
         wallet = self._wallet()
         wallet.balance = Decimal("0")
         wallet.save(update_fields=["balance"])
         credit_wallet(self.supplier, 100, wallet_category="visibility")
+        cost = self._cost("intel.report_monthly")
         response = self._purchase("intel.report_monthly", year=2026, month=1)
-        self.assertEqual(response.status_code, 402)
-        self.assertEqual(get_or_create_wallet(self.supplier).balance, Decimal("100"))
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(self._wallet().balance, Decimal("0"))
+        self.assertEqual(get_or_create_wallet(self.supplier).balance, 100 - cost)
 
     def test_current_month_is_never_sold_as_a_previous_month(self):
         from django.utils import timezone
@@ -1633,6 +1632,76 @@ class CampaignAndTemplateTests(TestCase):
         self.assertEqual(created.status_code, 201)
         self.assertEqual(created.data["serviceCode"], "promo.sponsored_banner_conversation")
 
+    def test_promotion_orders_cover_keywords_and_subcategory(self):
+        from user.models import Category, Product
+
+        listing = self.client.get(reverse("api_supplier_campaigns"))
+        formats = {item["value"] for item in listing.data["formats"]}
+        self.assertIn("keyword_reservation", formats)
+        self.assertIn("priority_subcategory", formats)
+
+        missing = self.client.post(
+            reverse("api_supplier_campaigns"),
+            {"format": "keyword_reservation", "budgetPragmadinar": 5, "objective": "duration", "durationDays": 7},
+            format="json",
+        )
+        self.assertEqual(missing.status_code, 400)
+
+        created = self.client.post(
+            reverse("api_supplier_campaigns"),
+            {
+                "format": "keyword_reservation",
+                "budgetPragmadinar": 999,
+                "objective": "views",
+                "goalCount": 10,
+                "keywords": ["bouteille", "PET"],
+            },
+            format="json",
+        )
+        self.assertEqual(created.status_code, 201, created.content)
+        self.assertEqual(created.data["serviceCode"], "promo.keyword_reservation")
+        self.assertEqual(created.data["keywords"], ["bouteille", "PET"])
+        self.assertEqual(created.data["goalTarget"], 10)
+        self.assertEqual(Decimal(created.data["budgetPragmadinar"]), Decimal("3.00"))
+
+        parent = Category.objects.create(name_en="Bottles", name_fr="Flacons", slug="flacons-promo", level=1)
+        child = Category.objects.create(
+            name_en="PET bottle",
+            name_fr="Bouteille PET",
+            slug="bouteille-pet-promo",
+            level=2,
+            parent=parent,
+        )
+        Product.objects.create(
+            supplier=self.supplier,
+            category=parent,
+            subcategory=child,
+            name="Bouteille",
+            description="PET",
+        )
+        Product.objects.create(
+            supplier=self.supplier,
+            category=parent,
+            subcategory=child,
+            name="Bouteille 2",
+            description="PET",
+        )
+        reserved = self.client.post(
+            reverse("api_supplier_campaigns"),
+            {
+                "format": "priority_subcategory",
+                "budgetPragmadinar": 999,
+                "objective": "views",
+                "goalCount": 10,
+                "subcategoryId": child.pk,
+            },
+            format="json",
+        )
+        self.assertEqual(reserved.status_code, 201, reserved.content)
+        self.assertEqual(reserved.data["subcategoryId"], child.pk)
+        self.assertEqual(reserved.data["subcategoryName"], "Bouteille PET")
+        self.assertEqual(Decimal(reserved.data["budgetPragmadinar"]), Decimal("8.00"))
+
     def _active_banner(self, fmt="banner"):
         created = self.client.post(
             reverse("api_supplier_campaigns"),
@@ -1873,9 +1942,9 @@ class CampaignAndTemplateTests(TestCase):
             {"name": "X", "format": "banner", "budgetPragmadinar": 5},
             format="json",
         )
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data["code"], "insufficient_pragmadinars")
-        self.assertFalse(Campaign.objects.filter(supplier=self.supplier).exists())
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(Campaign.objects.filter(supplier=self.supplier).exists())
+        self.assertEqual(get_or_create_wallet(self.supplier, category="promotion").balance, Decimal("0"))
 
     def test_new_campaign_starts_as_a_draft_without_debit(self):
         response = self.client.post(
@@ -2107,10 +2176,11 @@ class VisibilityMeteringTests(TestCase):
         settings.page_design = {"productCardLayout": "horizontal"}
         settings.save(update_fields=["product_card_style", "page_design"])
 
+        before = get_or_create_wallet(self.supplier).balance
         for _ in range(10):
             bill_product_card_store_visit(self.supplier.id, request=None)
         wallet = get_or_create_wallet(self.supplier)
-        self.assertEqual(wallet.balance, Decimal("15"))
+        self.assertEqual(wallet.balance, before)
 
     def test_horizontal_card_store_visit_debits_pragmadinar(self):
         from decimal import Decimal
@@ -2131,10 +2201,11 @@ class VisibilityMeteringTests(TestCase):
         settings.product_card_style = {"layout": "horizontal"}
         settings.save(update_fields=["product_card_style"])
 
+        before = get_or_create_wallet(self.supplier).balance
         for _ in range(10):
             bill_product_card_store_visit(self.supplier.id, request=None)
         wallet = get_or_create_wallet(self.supplier)
-        self.assertEqual(wallet.balance, Decimal("5"))
+        self.assertEqual(wallet.balance, before)
 
     def test_vitrine_extra_search_impression_debits_pragmadinar(self):
         from decimal import Decimal
@@ -2165,7 +2236,7 @@ class VisibilityMeteringTests(TestCase):
                 source="products",
             )
         wallet = get_or_create_wallet(self.supplier)
-        self.assertEqual(wallet.balance, Decimal("18"))
+        self.assertEqual(wallet.balance, Decimal("20"))
 
     def test_business_still_records_usage_for_dashboards(self):
         from user.visibility_metering import meter_product_search_impression

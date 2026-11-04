@@ -68,12 +68,14 @@ def _build_vocabulary() -> list[dict]:
         add(row['name_fr'], 6)
         add(row['name_ar'], 5)
 
-    for name in Product.objects.filter(is_active=True).values_list(
+    for name in Product.objects.filter(
+        is_active=True, supplier__is_ghost=False
+    ).values_list(
         'name', flat=True
     ).distinct():
         add(name, 4)
 
-    for name in Supplier.objects.filter(is_active=True).values_list(
+    for name in Supplier.objects.filter(is_active=True, is_ghost=False).values_list(
         'company_name', flat=True
     ).distinct():
         add(name, 3)

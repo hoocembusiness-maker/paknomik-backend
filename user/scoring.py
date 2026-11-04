@@ -131,7 +131,7 @@ def ensure_supplier_score(supplier_id: int) -> SupplierScore:
 
 def get_supplier_rank(supplier_id: int) -> tuple[int, int]:
     """Return (rank, total_active_suppliers) based on score_total."""
-    active_supplier_ids = Supplier.objects.filter(is_active=True).values_list("id", flat=True)
+    active_supplier_ids = Supplier.objects.filter(is_active=True, is_ghost=False).values_list("id", flat=True)
     total = len(active_supplier_ids)
     if not total:
         return 0, 0
@@ -280,7 +280,8 @@ def apply_daily_presence_penalties(for_day: date | None = None) -> int:
     penalized = 0
 
     for score in SupplierScore.objects.select_related("supplier").filter(
-        supplier__is_active=True
+        supplier__is_active=True,
+        supplier__is_ghost=False,
     ):
         last_login = score.last_login_date
         if last_login is None or last_login >= target_day:

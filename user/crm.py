@@ -741,7 +741,7 @@ def sync_suppliers_for_buyer_interest_subcategory(buyer, subcategory):
     if buyer is None or getattr(buyer, "supplier_id", None):
         return
     suppliers = (
-        Supplier.objects.filter(is_active=True)
+        Supplier.objects.filter(is_active=True, is_ghost=False)
         .filter(
             Q(products__is_active=True, products__subcategory=subcategory)
             | Q(interested_subcategories=subcategory)

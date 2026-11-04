@@ -295,9 +295,11 @@ def build_category_benchmark(supplier, period: ReportPeriod, subcategory_id: int
     group_ids = _market_supplier_ids(supplier, selected.pk if selected else None)
     supplier_id = supplier.id
     minimum = _min_suppliers()
-    masked = len(group_ids) < minimum
-    selected_id = selected.pk if selected else None
     group_size = len(group_ids)
+    # Alone in the subcategory: show real values (comparative share is 100%).
+    # Mask only when peers exist but the group is still too small for anonymity.
+    masked = 1 < group_size < minimum
+    selected_id = selected.pk if selected else None
 
     current = _visibility_block(supplier_id, group_ids, period.start, period.end, selected)
     appear_own, appear_category = _pair(supplier_id, current["appearances"])
@@ -405,9 +407,11 @@ def build_category_benchmark(supplier, period: ReportPeriod, subcategory_id: int
     product_own = own_products.count()
     followers_category = BuyerFavoriteSupplier.objects.filter(supplier_id__in=list(group_ids)).count()
     followers_own = BuyerFavoriteSupplier.objects.filter(supplier_id=supplier_id).count()
-    own_balance = Decimal(str(wallet_payload(supplier)["balance"]))
-    category_balance = (
-        PragmadinarWallet.objects.filter(supplier_id__in=list(group_ids)).aggregate(total=Sum("balance"))["total"]
+    own_spent = Decimal(str(wallet_payload(supplier)["spentTotal"]))
+    category_spent = (
+        PragmadinarWallet.objects.filter(supplier_id__in=list(group_ids)).aggregate(
+            total=Sum("spent_total")
+        )["total"]
         or Decimal("0")
     )
     own_delay, category_delay = _response_minutes(group_ids, supplier_id, period.start, period.end)
@@ -427,7 +431,7 @@ def build_category_benchmark(supplier, period: ReportPeriod, subcategory_id: int
         _response_card(own_delay, category_delay, masked=masked),
     ]
     if _show_pragmadinar():
-        activity.append(_volume_card("pragmadinar", category_balance, own_balance, masked=masked))
+        activity.append(_volume_card("pragmadinar", category_spent, own_spent, masked=masked))
     activity.extend(
         [
             _volume_card("orders", orders_category, orders_own, masked=masked),

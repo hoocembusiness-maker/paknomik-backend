@@ -599,6 +599,7 @@ class AdminSuppliersListView(APIView):
                     "subscriptionType": supplier.subscription_type or "Classic",
                     "isActive": supplier.is_active,
                     "isFeatured": supplier.is_featured,
+                    "isGhost": supplier.is_ghost,
                     "brandColor": supplier.brand_color or "",
                     "brandNeutralColor": supplier.brand_neutral_color or "#ffffff",
                 }
@@ -633,6 +634,7 @@ class AdminSupplierManageView(APIView):
         profile["subscriptionType"] = supplier.subscription_type or "Classic"
         profile["isActive"] = supplier.is_active
         profile["isFeatured"] = supplier.is_featured
+        profile["isGhost"] = supplier.is_ghost
         return Response(
             {
                 "profile": profile,
@@ -695,6 +697,9 @@ class AdminSupplierManageView(APIView):
             if "isFeatured" in profile_payload:
                 supplier.is_featured = bool(profile_payload.get("isFeatured"))
                 admin_fields.append("is_featured")
+            if "isGhost" in profile_payload:
+                supplier.is_ghost = bool(profile_payload.get("isGhost"))
+                admin_fields.append("is_ghost")
             if admin_fields:
                 admin_fields.append("updated_at")
                 supplier.save(update_fields=admin_fields)
@@ -723,6 +728,7 @@ class AdminSupplierManageView(APIView):
         profile["subscriptionType"] = supplier.subscription_type or "Classic"
         profile["isActive"] = supplier.is_active
         profile["isFeatured"] = supplier.is_featured
+        profile["isGhost"] = supplier.is_ghost
         return Response(
             {
                 "profile": profile,

@@ -1,0 +1,79 @@
+{% extends "user/base_auth.html" %}
+
+{% block title %}Configurer le devis — {{ payload.category.name }}{% endblock %}
+
+{% block content %}
+<section style="max-width: 860px; margin: 24px auto; padding: 0 16px;">
+  <div class="dashboard-card" style="padding: 24px;">
+    <h1 style="color: #2a2142; margin-top: 0;">{{ payload.category.name }}</h1>
+    <p>Unité de quantité : {{ payload.quantityUnit }}. La personnalisation ci-dessous concerne le formulaire, pas la fabrication.</p>
+    {% if payload.platformInstructions %}
+      <p>Consigne Paknomik : {{ payload.platformInstructions }}</p>
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+      <label class="form-label" for="physical_customization">Personnalisation physique</label>
+      <select class="auth-select" id="physical_customization" name="physical_customization">
+        <option value="included" {% if payload.physicalCustomization == "included" %}selected{% endif %}>Incluse</option>
+        <option value="paid" {% if payload.physicalCustomization == "paid" %}selected{% endif %}>Payante</option>
+        <option value="negotiate" {% if payload.physicalCustomization == "negotiate" %}selected{% endif %}>À négocier sur devis</option>
+      </select>
+
+      <label class="form-label" for="buyer_instructions">Instructions pour l'acheteur</label>
+      <textarea class="auth-textarea" id="buyer_instructions" name="buyer_instructions">{{ payload.buyerInstructions }}</textarea>
+
+      <h2>Champs</h2>
+      {% for field in payload.fields %}
+        <fieldset style="border: 1px solid #e9e2fc; border-radius: 12px; margin: 12px 0; padding: 12px;">
+          <legend>{{ field.label }}{% if field.locked %} — imposé{% endif %}</legend>
+          <label>
+            <input type="checkbox" name="enabled_{{ field.key }}" value="1" {% if field.enabled %}checked{% endif %} {% if field.locked %}disabled{% endif %}>
+            Afficher
+          </label>
+          {% if field.locked %}
+            <input type="hidden" name="enabled_{{ field.key }}" value="1">
+          {% endif %}
+          <label>
+            <input type="checkbox" name="required_{{ field.key }}" value="1" {% if field.required %}checked{% endif %} {% if field.locked and field.platformRequired %}disabled{% endif %}>
+            Obligatoire
+          </label>
+          {% if field.locked and field.platformRequired %}
+            <input type="hidden" name="required_{{ field.key }}" value="1">
+          {% endif %}
+          {% if field.platformOptions %}
+            <div>
+              {% for option in field.platformOptions %}
+                <label style="display: block;">
+                  <input type="checkbox" name="options_{{ field.key }}" value="{{ option }}" {% if option in field.options %}checked{% endif %}>
+                  {{ option }}
+                </label>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </fieldset>
+      {% endfor %}
+
+      <h2>Questions complémentaires</h2>
+      {% for slot in extra_slots %}
+        <fieldset style="border: 1px solid #e9e2fc; border-radius: 12px; margin: 12px 0; padding: 12px;">
+          <legend>Question {{ slot.index }}</legend>
+          <input class="auth-input" name="extra_label_{{ slot.index }}" placeholder="Libellé" value="{{ slot.label }}">
+          <select class="auth-select" name="extra_type_{{ slot.index }}">
+            {% for kind, label in extra_types %}
+              <option value="{{ kind }}" {% if slot.fieldType == kind %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+          <label>
+            <input type="checkbox" name="extra_required_{{ slot.index }}" value="1" {% if slot.required %}checked{% endif %}>
+            Obligatoire
+          </label>
+          <input class="auth-input" name="extra_options_{{ slot.index }}" placeholder="Choix séparés par des virgules" value="{{ slot.options_text }}">
+        </fieldset>
+      {% endfor %}
+
+      <button class="auth-button signup" type="submit">Enregistrer</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

@@ -3,7 +3,7 @@ Lists all `/api/...` URL paths and which view handles each one.
 The React app calls these endpoints.
 """
 
-from django.urls import path
+from django.urls import include, path
 
 from user.api import views
 from user.api import admin_views
@@ -17,11 +17,14 @@ from user.api import digital_views
 from user.api import experiment_views
 from user.api import market_dashboard_views
 from user.api import quote_demand_views
+from user.api import quote_form_views
+from user.api import pragmadinar_admin_views
 from user.api import rbac_views
 from user.api import sample_views
 from user.api import search_map_views
 from user.api import strategy_views
 from user.api import trade_views
+from user.api import pilotage_views
 
 urlpatterns = [
     path("stats", views.PlatformStatsView.as_view(), name="api_stats"),
@@ -45,6 +48,11 @@ urlpatterns = [
     path("subcategories/", views.SubCategoryListView.as_view(), name="api_subcategories"),
     path("suppliers/", views.SupplierListView.as_view(), name="api_suppliers"),
     path("suppliers/<int:pk>/", views.SupplierDetailView.as_view(), name="api_supplier_detail"),
+    path(
+        "suppliers/<int:pk>/reviews/",
+        views.SupplierReviewsView.as_view(),
+        name="api_supplier_reviews",
+    ),
     path(
         "suppliers/<int:pk>/messages/",
         views.BuyerSupplierMessagesView.as_view(),
@@ -96,6 +104,7 @@ urlpatterns = [
     path("auth/google/", views.GoogleAuthStartView.as_view(), name="api_google_auth"),
     path("auth/google/token/", views.GoogleTokenAuthView.as_view(), name="api_google_token"),
     path("auth/google/callback/", views.GoogleAuthCallbackView.as_view(), name="api_google_callback"),
+    path("quote-forms/", quote_form_views.BuyerQuoteFormView.as_view(), name="api_quote_form"),
     path("rfq/", views.RfqView.as_view(), name="api_rfq"),
     path("quote-requests/", views.RfqView.as_view(), name="api_quote_requests"),
     path(
@@ -129,6 +138,11 @@ urlpatterns = [
         "supplier/wallet/strategy/distribution/",
         strategy_views.SupplierPragmadinarWalletDistributionView.as_view(),
         name="api_supplier_wallet_strategy_distribution",
+    ),
+    path(
+        "supplier/wallet/strategy/reservations/reallocate/",
+        strategy_views.SupplierPragmadinarReservationReallocateView.as_view(),
+        name="api_supplier_wallet_strategy_reallocate",
     ),
     path(
         "supplier/wallet/strategy/reservations/<int:pk>/release/",
@@ -169,6 +183,11 @@ urlpatterns = [
         "quote-demands/<int:pk>/decide/",
         quote_demand_views.BuyerQuoteDemandDecideView.as_view(),
         name="api_quote_demand_decide",
+    ),
+    path(
+        "quote-demands/<int:pk>/revalidate/",
+        quote_demand_views.BuyerQuoteDemandRevalidateView.as_view(),
+        name="api_quote_demand_revalidate",
     ),
     path(
         "quote-demands/<int:pk>/convert-to-order/",
@@ -425,6 +444,36 @@ urlpatterns = [
         name="api_admin_settings",
     ),
     path(
+        "admin/suppliers/",
+        pragmadinar_admin_views.AdminSupplierCreateView.as_view(),
+        name="api_admin_supplier_create",
+    ),
+    path(
+        "admin/suppliers/<int:pk>/balance/",
+        pragmadinar_admin_views.AdminSupplierBalanceView.as_view(),
+        name="api_admin_supplier_balance",
+    ),
+    path(
+        "admin/pragmadinar/summary/",
+        pragmadinar_admin_views.AdminPragmadinarSummaryView.as_view(),
+        name="api_admin_pragmadinar_summary",
+    ),
+    path(
+        "admin/pragmadinar/suppliers/",
+        pragmadinar_admin_views.AdminPragmadinarSuppliersView.as_view(),
+        name="api_admin_pragmadinar_suppliers",
+    ),
+    path(
+        "admin/pragmadinar/ledger/",
+        pragmadinar_admin_views.AdminPragmadinarLedgerView.as_view(),
+        name="api_admin_pragmadinar_ledger",
+    ),
+    path(
+        "admin/pragmadinar/ledger/<int:pk>/",
+        pragmadinar_admin_views.AdminPragmadinarLedgerDetailView.as_view(),
+        name="api_admin_pragmadinar_ledger_detail",
+    ),
+    path(
         "admin/pragmadinars/credit/",
         rbac_views.AdminPragmadinarCreditView.as_view(),
         name="api_admin_pragmadinars_credit",
@@ -483,7 +532,27 @@ urlpatterns = [
     path("supplier/products/", views.SupplierProductsView.as_view(), name="api_supplier_products"),
     path("supplier/products/<int:pk>/", views.SupplierProductDetailView.as_view(), name="api_supplier_product_detail"),
     path("supplier/orders/", views.SupplierOrdersView.as_view(), name="api_supplier_orders"),
+    path(
+        "supplier/quote-forms/",
+        quote_form_views.SupplierQuoteFormListView.as_view(),
+        name="api_supplier_quote_forms",
+    ),
+    path(
+        "supplier/quote-forms/<int:category_id>/",
+        quote_form_views.SupplierQuoteFormDetailView.as_view(),
+        name="api_supplier_quote_form_detail",
+    ),
     path("supplier/rfqs/", views.SupplierRfqsView.as_view(), name="api_supplier_rfqs"),
+    path(
+        "supplier/rfqs/<int:pk>/",
+        quote_form_views.SupplierRfqDetailView.as_view(),
+        name="api_supplier_rfq_detail",
+    ),
+    path(
+        "supplier/rfqs/<int:pk>/status/",
+        quote_form_views.SupplierRfqStatusView.as_view(),
+        name="api_supplier_rfq_status",
+    ),
     path(
         "supplier/sample-requests/",
         sample_views.SupplierSampleRequestListView.as_view(),
@@ -605,6 +674,11 @@ urlpatterns = [
     path("supplier/settings/", views.SupplierSettingsView.as_view(), name="api_supplier_settings"),
     path("buyer/orders/", views.BuyerOrdersView.as_view(), name="api_buyer_orders"),
     path(
+        "buyer/sample-requests/",
+        sample_views.BuyerSampleRequestListView.as_view(),
+        name="api_buyer_sample_requests",
+    ),
+    path(
         "buyer/orders/<int:pk>/",
         views.BuyerOrderDetailView.as_view(),
         name="api_buyer_order_detail",
@@ -616,6 +690,7 @@ urlpatterns = [
         name="api_buyer_interest_subcategories",
     ),
     path("buyer/searches/", views.BuyerSearchHistoryView.as_view(), name="api_buyer_searches"),
+    path("buyer/visits/", views.BuyerVisitHistoryView.as_view(), name="api_buyer_visits"),
     path(
         "buyer/searches/<int:pk>/",
         views.BuyerSearchHistoryDetailView.as_view(),
@@ -733,4 +808,82 @@ urlpatterns = [
         views.OrdersNotificationsSeenView.as_view(),
         name="api_orders_notifications_seen",
     ),
+    path(
+        "notifications/ratings-seen/",
+        views.RatingsNotificationsSeenView.as_view(),
+        name="api_ratings_notifications_seen",
+    ),
+    # Espace de pilotage
+    path(
+        "admin/pilotage/",
+        pilotage_views.PilotageBootstrapView.as_view(),
+        name="api_admin_pilotage_bootstrap",
+    ),
+    path(
+        "admin/pilotage/overview/",
+        pilotage_views.PilotageOverviewView.as_view(),
+        name="api_admin_pilotage_overview",
+    ),
+    path(
+        "admin/pilotage/weeks/",
+        pilotage_views.PilotageWeeksView.as_view(),
+        name="api_admin_pilotage_weeks",
+    ),
+    path(
+        "admin/pilotage/weeks/<int:week_id>/",
+        pilotage_views.PilotageWeekDetailView.as_view(),
+        name="api_admin_pilotage_week_detail",
+    ),
+    path(
+        "admin/pilotage/tasks/",
+        pilotage_views.PilotageTasksView.as_view(),
+        name="api_admin_pilotage_tasks",
+    ),
+    path(
+        "admin/pilotage/tasks/<int:task_id>/",
+        pilotage_views.PilotageTaskDetailView.as_view(),
+        name="api_admin_pilotage_task_detail",
+    ),
+    path(
+        "admin/pilotage/metrics/",
+        pilotage_views.PilotageMetricsView.as_view(),
+        name="api_admin_pilotage_metrics",
+    ),
+    path(
+        "admin/pilotage/daily-logs/",
+        pilotage_views.PilotageDailyLogsView.as_view(),
+        name="api_admin_pilotage_daily_logs",
+    ),
+    path(
+        "admin/pilotage/daily-logs/<int:log_id>/",
+        pilotage_views.PilotageDailyLogDetailView.as_view(),
+        name="api_admin_pilotage_daily_log_detail",
+    ),
+    path(
+        "admin/pilotage/admins/",
+        pilotage_views.PilotageAdminsTrackingView.as_view(),
+        name="api_admin_pilotage_admins",
+    ),
+    path(
+        "admin/pilotage/admins/assignable/",
+        pilotage_views.PilotageAssignableAdminsView.as_view(),
+        name="api_admin_pilotage_assignable",
+    ),
+    path(
+        "admin/pilotage/admins/<int:admin_id>/",
+        pilotage_views.PilotageAdminDetailView.as_view(),
+        name="api_admin_pilotage_admin_detail",
+    ),
+    path(
+        "admin/pilotage/market-contacts/",
+        pilotage_views.PilotageMarketContactsView.as_view(),
+        name="api_admin_pilotage_market_contacts",
+    ),
+    path(
+        "admin/pilotage/market-contacts/<int:contact_id>/",
+        pilotage_views.PilotageMarketContactDetailView.as_view(),
+        name="api_admin_pilotage_market_contact_detail",
+    ),
+    path("buyer/", include("buyer_space.urls")),
+    path("paksuites/", include("buyer_space.catalogue_urls")),
 ]

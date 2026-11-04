@@ -14,7 +14,7 @@ Deux dépôts GitHub, trois services Railway. Le développement local reste sur 
 2. Railway crée `DATABASE_URL`. Ne la copiez pas dans Git.
 3. Reliez cette variable au service backend (Reference Variable), pas au frontend.
 
-Sans `DATABASE_URL`, Django continue d'utiliser `db.sqlite3`.
+Sans `DATABASE_URL`, Django continue d'utiliser `db.sqlite3` en local seulement. Sur Railway, l'absence de `DATABASE_URL` arrête le démarrage : le fichier SQLite local ne doit jamais servir en production.
 
 ## 2. Backend Django
 
@@ -68,6 +68,27 @@ Le disque Railway est éphémère. Les photos, logos et PDF déposés dans `medi
 WhiteNoise sert les fichiers statiques collectés. Il ne sert pas les médias. Sans volume, laissez `DJANGO_SERVE_MEDIA=false` : les uploads ne doivent pas être considérés comme durables.
 
 Un stockage objet (S3 ou équivalent) n'est pas branché. Le modèle de fichiers Django reste le stockage local.
+
+### Données
+
+L'hébergement démarre sur une base PostgreSQL vide, puis charge les fournisseurs et les produits. Le `preDeployCommand` applique les migrations, puis `import_hosting_catalog`.
+
+Ce catalogue (`hosting_catalog/`) contient les fiches fournisseurs, leurs produits, les logos et les photos produit. Il n'exporte ni n'importe les comptes utilisateurs ou leurs données d'authentification. Il ne contient pas les commandes, messages, avis, campagnes, ni le journal Pragmadinar. Chaque fournisseur importé reçoit une seule fois le crédit de bienvenue de 200. Si des fournisseurs existent déjà, l'import ne réécrit pas les fiches.
+
+Régénérer le catalogue depuis la base locale, avant l'envoi :
+
+```bash
+python manage.py export_hosting_catalog
+```
+
+Ne pas envoyer :
+
+- `db.sqlite3` et ses sauvegardes (historique de travail)
+- le dossier `media/` entier (commandes, messages, devis)
+- `.env`
+- un export `dumpdata`, `.sql` ou `.dump`
+
+`.gitignore` exclut `hosting_catalog/` du dépôt Git pour éviter d'y stocker les données fournisseurs. Transférez ce catalogue vers l'environnement d'hébergement par un canal privé avec accès limité. `.railwayignore` exclut les bases locales, les exports SQL et le dossier `media/`. Un second déploiement ne recharge pas les fiches déjà présentes. Les photos du catalogue sont recopiées.
 
 ### Après le premier déploiement
 
@@ -136,7 +157,7 @@ Vérifiée le 9 octobre 2026.
 3. Créer le projet Railway et suivre l'ordre de la section 4.
 4. Générer `DJANGO_SECRET_KEY` et `TOKEN_ENCRYPTION_KEY` directement dans Railway. Ne réutilisez pas les valeurs du `.env` local.
 5. Monter un volume pour `MEDIA_ROOT` avant d'accepter des uploads réels.
-6. Décider s'il faut reprendre les données SQLite. Aucune donnée n'est copiée vers PostgreSQL : c'est une opération séparée, à faire avec `dumpdata` / `loaddata` sur une copie, jamais sur la base locale de travail.
+6. Transférer `hosting_catalog/` par un canal privé vers l'environnement d'hébergement. Il contient uniquement les fiches et produits sélectionnés, sans comptes utilisateurs. Ne pas copier `db.sqlite3` ni `media/`. Pas de `dumpdata` / `loaddata`.
 7. Mettre à jour les URL de redirection Google, Meta et Instagram avec le domaine du backend.
 8. Après le premier déploiement : `createsuperuser`, puis vérifier `/admin/login/`, une connexion, une recherche, une image produit et une fiche technique PDF.
 

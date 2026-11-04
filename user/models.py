@@ -78,12 +78,12 @@ class User(AbstractUser):
 
 
 class Category(models.Model):
-    """Technical category tree (v2 catalog — 16 parents, ~63 subcategories).
+    """Product taxonomy tree: Famille (root) → Type de produit (child).
 
-    Level 1 rows are parent categories (e.g. Bottles & Jars). Level 2 rows
-    are subcategories linked via ``parent`` (e.g. Plastic Bottles). Products
-    should reference a subcategory when possible. Commercial segments are
-    separate tags on products, not nested under categories.
+    Level 1 rows are families (e.g. Contenants rigides). Level 2 rows are
+    product types linked via ``parent`` (e.g. Bouteille PET). Products should
+    reference a type when possible. Commercial sectors stay on
+    ``Product.target_markets``, not as taxonomy families.
     """
 
     external_id = models.CharField(max_length=20, unique=True, blank=True, null=True)
@@ -113,6 +113,16 @@ class Category(models.Model):
         return self.name_en
 
     @property
+    def is_family(self) -> bool:
+        return self.parent_id is None
+
+    @property
+    def is_service_node(self) -> bool:
+        from user.taxonomy_v3 import is_service_category
+
+        return is_service_category(self)
+
+    @property
     def total_products(self):
         return Product.objects.filter(category=self).count()
         
@@ -138,6 +148,9 @@ class TechnicalAttribute(models.Model):
         (1, "Level 1 — Search filter"),
         (2, "Level 2 — Product spec"),
     )
+    # A product may list several values for these types (e.g. 20, 30 and 50 µm);
+    # boolean and text attributes keep a single value.
+    MULTI_VALUE_TYPES = ("number", "choice")
 
     external_id = models.CharField(max_length=20, unique=True, blank=True, null=True)
     name_en = models.CharField(max_length=150)
@@ -171,6 +184,10 @@ class TechnicalAttribute(models.Model):
 
     def __str__(self):
         return self.name_en
+
+    @property
+    def allows_multiple_values(self) -> bool:
+        return self.attribute_type in self.MULTI_VALUE_TYPES
 
 
 class CategoryAttribute(models.Model):
@@ -606,6 +623,10 @@ class Supplier(models.Model):
     )
     is_active = models.BooleanField(default=True)
     is_featured = models.BooleanField(default=False)
+    is_ghost = models.BooleanField(
+        default=False,
+        help_text="Masque le fournisseur et ses produits sur le site public. Le compte reste dans l'administration.",
+    )
     interested_categories = models.ManyToManyField(
         Category,
         blank=True,
@@ -820,7 +841,11 @@ class Product(models.Model):
 
 
 class ProductAttributeValue(models.Model):
-    """Value of a technical attribute for a specific product listing."""
+    """Value of a technical attribute for a specific product listing.
+
+    One row per value: number and choice attributes may have several rows for
+    the same product (see TechnicalAttribute.allows_multiple_values).
+    """
 
     product = models.ForeignKey(
         Product, on_delete=models.CASCADE, related_name="attribute_values"
@@ -833,7 +858,8 @@ class ProductAttributeValue(models.Model):
     bool_value = models.BooleanField(default=False)
 
     class Meta:
-        unique_together = [["product", "attribute"]]
+        ordering = ["id"]
+        indexes = [models.Index(fields=["product", "attribute"])]
 
     def __str__(self):
         if self.num_value is not None:
@@ -1230,7 +1256,21 @@ class RFQRequest(models.Model):
     email = models.EmailField(blank=True)
     phone = models.CharField(max_length=32, blank=True)
     quantity_estimate = models.PositiveIntegerField(null=True, blank=True)
+    quantity_unit = models.CharField(max_length=40, blank=True, default="")
     destination = models.CharField(max_length=255, blank=True)
+    category = models.ForeignKey(
+        Category,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="typed_quote_requests",
+        help_text="Type d'emballage demandé. Les specs sont figées dans specs_snapshot.",
+    )
+    specs_snapshot = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Copie des spécifications au moment de l'envoi.",
+    )
     message = models.TextField(blank=True)
     status = models.CharField(
         max_length=20, choices=Status.choices, default=Status.SUBMITTED
@@ -1265,6 +1305,52 @@ class RFQRequestPhoto(models.Model):
 
     def __str__(self):
         return f"Photo #{self.pk} — demande boutique #{self.rfq_id}"
+
+
+class RFQRequestFile(models.Model):
+    """Document technique joint à une demande de devis (PDF)."""
+
+    rfq = models.ForeignKey(RFQRequest, on_delete=models.CASCADE, related_name="files")
+    file = models.FileField(upload_to="quote_requests/files/")
+    original_name = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["id"]
+
+    def __str__(self):
+        return f"Fichier #{self.pk} — demande boutique #{self.rfq_id}"
+
+
+class RFQRequestEvent(models.Model):
+    """Historique d'une demande de devis boutique."""
+
+    class Action(models.TextChoices):
+        SUBMITTED = "submitted", "Envoyée"
+        STATUS_CHANGED = "status_changed", "Statut modifié"
+        QUOTED = "quoted", "Devis répondu"
+        NOTE = "note", "Note"
+
+    rfq = models.ForeignKey(RFQRequest, on_delete=models.CASCADE, related_name="events")
+    action = models.CharField(max_length=24, choices=Action.choices)
+    actor = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="rfq_events",
+    )
+    comment = models.TextField(blank=True)
+    snapshot = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["created_at", "id"]
+        verbose_name = "Quote request event"
+        verbose_name_plural = "Quote request events"
+
+    def __str__(self):
+        return f"Demande #{self.rfq_id} — {self.action}"
 
 
 class SampleRequest(models.Model):
@@ -1312,6 +1398,20 @@ class SampleRequest(models.Model):
         null=True,
         blank=True,
         help_text="Première réaction du fournisseur (changement de statut).",
+    )
+    packaging_project = models.ForeignKey(
+        "buyer_space.PackagingProject",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="sample_requests",
+    )
+    packaging_item = models.ForeignKey(
+        "buyer_space.PackagingItem",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="sample_requests",
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -1366,6 +1466,11 @@ class QuoteResponse(models.Model):
     )
     currency = models.CharField(max_length=8, default="DZD")
     lead_time_days = models.PositiveIntegerField(null=True, blank=True)
+    moq = models.PositiveIntegerField(null=True, blank=True)
+    customization_fee = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True
+    )
+    commercial_terms = models.TextField(blank=True, default="")
     status = models.CharField(
         max_length=20, choices=Status.choices, default=Status.SUBMITTED
     )
@@ -1377,6 +1482,119 @@ class QuoteResponse(models.Model):
 
     def __str__(self):
         return f"Quote response #{self.pk} for request #{self.quote_request_id}"
+
+
+class QuoteFormTemplate(models.Model):
+    """Platform quote form bound to a packaging family or type."""
+
+    category = models.OneToOneField(
+        Category, on_delete=models.CASCADE, related_name="quote_form_template"
+    )
+    title_fr = models.CharField(max_length=200)
+    title_en = models.CharField(max_length=200, blank=True)
+    buyer_instructions = models.TextField(blank=True, default="")
+    quantity_unit = models.CharField(max_length=40, default="pièces")
+    version = models.PositiveIntegerField(default=1)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Quote form template"
+        verbose_name_plural = "Quote form templates"
+
+    def __str__(self):
+        return f"{self.title_fr} — {self.category}"
+
+
+class QuoteFormField(models.Model):
+    """One technical question on a platform quote form."""
+
+    class FieldType(models.TextChoices):
+        TEXT = "text", "Texte"
+        TEXTAREA = "textarea", "Commentaire"
+        NUMBER = "number", "Nombre"
+        CHOICE = "choice", "Liste"
+        BOOLEAN = "boolean", "Oui / non"
+
+    template = models.ForeignKey(
+        QuoteFormTemplate, on_delete=models.CASCADE, related_name="fields"
+    )
+    key = models.SlugField(max_length=64)
+    label_fr = models.CharField(max_length=200)
+    label_en = models.CharField(max_length=200, blank=True)
+    field_type = models.CharField(max_length=20, choices=FieldType.choices)
+    unit_label = models.CharField(max_length=40, blank=True, default="")
+    required = models.BooleanField(default=False)
+    locked = models.BooleanField(
+        default=False,
+        help_text="Le fournisseur ne peut pas masquer ce champ.",
+    )
+    positive = models.BooleanField(default=False)
+    options = models.JSONField(default=list, blank=True)
+    condition = models.JSONField(null=True, blank=True)
+    group = models.CharField(max_length=40, blank=True, default="")
+    help_fr = models.CharField(max_length=300, blank=True, default="")
+    sort_order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["sort_order", "id"]
+        unique_together = [["template", "key"]]
+        verbose_name = "Quote form field"
+        verbose_name_plural = "Quote form fields"
+
+    def __str__(self):
+        return f"{self.template_id} — {self.label_fr}"
+
+
+class SupplierQuoteForm(models.Model):
+    """Free digital customization of a quote form by one supplier."""
+
+    class PhysicalCustomization(models.TextChoices):
+        INCLUDED = "included", "Incluse"
+        PAID = "paid", "Payante"
+        NEGOTIATE = "negotiate", "À négocier sur devis"
+
+    supplier = models.ForeignKey(
+        Supplier, on_delete=models.CASCADE, related_name="quote_forms"
+    )
+    template = models.ForeignKey(
+        QuoteFormTemplate, on_delete=models.CASCADE, related_name="supplier_forms"
+    )
+    buyer_instructions = models.TextField(blank=True, default="")
+    physical_customization = models.CharField(
+        max_length=16,
+        choices=PhysicalCustomization.choices,
+        default=PhysicalCustomization.NEGOTIATE,
+    )
+    extra_questions = models.JSONField(default=list, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = [["supplier", "template"]]
+        verbose_name = "Supplier quote form"
+        verbose_name_plural = "Supplier quote forms"
+
+    def __str__(self):
+        return f"{self.supplier} — {self.template}"
+
+
+class SupplierQuoteFormField(models.Model):
+    """Per-field override: visibility, required flag, and allowed options."""
+
+    form = models.ForeignKey(
+        SupplierQuoteForm, on_delete=models.CASCADE, related_name="field_settings"
+    )
+    field = models.ForeignKey(
+        QuoteFormField, on_delete=models.CASCADE, related_name="supplier_settings"
+    )
+    enabled = models.BooleanField(default=True)
+    required = models.BooleanField(null=True, blank=True)
+    options = models.JSONField(null=True, blank=True)
+
+    class Meta:
+        unique_together = [["form", "field"]]
+
+    def __str__(self):
+        return f"{self.form_id} — {self.field.key}"
 
 
 class OrderResponse(models.Model):
@@ -2353,6 +2571,11 @@ class Campaign(models.Model):
             "banner_conversation",
             "Bannière verticale (espace conversation)",
         )
+        KEYWORD_RESERVATION = "keyword_reservation", "Réservation de mot-clé"
+        PRIORITY_SUBCATEGORY = (
+            "priority_subcategory",
+            "Apparition prioritaire dans la sous-catégorie",
+        )
 
     class Objective(models.TextChoices):
         DURATION = "duration", "Durée"
@@ -2402,6 +2625,19 @@ class Campaign(models.Model):
         choices=ContextScope.choices,
         default=ContextScope.ALL,
         help_text="Bannières : afficher partout ou seulement dans les catégories du fournisseur.",
+    )
+    keywords = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Mots-clés réservés pour une campagne de recherche.",
+    )
+    subcategory = models.ForeignKey(
+        Category,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="priority_campaigns",
+        help_text="Sous-catégorie réservée pour une apparition prioritaire.",
     )
     views_consumed = models.PositiveIntegerField(default=0)
     visits_consumed = models.PositiveIntegerField(default=0)
@@ -2472,6 +2708,20 @@ class PragmadinarLedger(models.Model):
     amount = models.DecimalField(
         max_digits=12, decimal_places=2, help_text="Négatif pour un débit."
     )
+    balance_before = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Solde total du fournisseur avant l'écriture. Vide pour l'historique antérieur.",
+    )
+    balance_after = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Solde total du fournisseur après l'écriture.",
+    )
     rate_dzd = models.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -2515,6 +2765,7 @@ class PragmadinarStrategyReservation(models.Model):
         DAY = "day", "Jour"
         WEEK = "week", "Semaine"
         MONTH = "month", "Mois"
+        OPEN = "open", "Indéterminée"
 
     class Status(models.TextChoices):
         RESERVED = "reserved", "Réservée"
@@ -2555,7 +2806,7 @@ class PragmadinarStrategyReservation(models.Model):
     status = models.CharField(
         max_length=12, choices=Status.choices, default=Status.RESERVED, db_index=True
     )
-    ends_at = models.DateTimeField()
+    ends_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -2651,6 +2902,46 @@ class QuoteDemand(models.Model):
         choices=MarketRemovedReason.choices,
         blank=True,
     )
+    packaging_project = models.ForeignKey(
+        "buyer_space.PackagingProject",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="quote_demands",
+    )
+    packaging_item = models.ForeignKey(
+        "buyer_space.PackagingItem",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="quote_demands",
+    )
+    service_request = models.ForeignKey(
+        "buyer_space.ServiceRequest",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="quote_demands",
+    )
+    paksuites_component = models.ForeignKey(
+        "buyer_space.PaksuitesComponent",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="quote_demands",
+    )
+    catalogue_line = models.ForeignKey(
+        "buyer_space.SuiteComponentLine",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="quote_demands",
+    )
+    packaging_spec_version = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Version de la fiche au moment du devis. Sert à signaler une revalidation.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -2661,6 +2952,13 @@ class QuoteDemand(models.Model):
         indexes = [
             models.Index(fields=["kind", "status", "-created_at"]),
             models.Index(fields=["admin_queue", "status", "-created_at"]),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["paksuites_component"],
+                condition=models.Q(paksuites_component__isnull=False),
+                name="uniq_quote_demand_paksuites_component",
+            ),
         ]
 
     def __str__(self):
@@ -2842,6 +3140,10 @@ class AppNotification(models.Model):
         QUOTE_LOST = "quote_lost", "Proposition perdue"
         RFQ_IN_REVIEW = "rfq_in_review", "Demande en cours de traitement"
         SAMPLE_REQUEST = "sample_request", "Demande d'échantillon"
+        SERVICE_REQUEST = "service_request", "Demande de service"
+        PILOTAGE_TASK_ASSIGNED = "pilotage_task_assigned", "Tâche de pilotage affectée"
+        PILOTAGE_TASK_BLOCKED = "pilotage_task_blocked", "Tâche de pilotage bloquée"
+        SUPPLIER_RATED = "supplier_rated", "Note acheteur"
 
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="app_notifications"
@@ -3037,3 +3339,13 @@ from user.digital_models import (  # noqa: E402,F401  (registers the models in t
     DigitalPlatform,
 )
 from user.contact_models import ContactMessage  # noqa: E402,F401
+from user.pilotage_models import (  # noqa: E402,F401
+    PilotageBoardTask,
+    PilotageDailyLog,
+    PilotageGoalState,
+    PilotageMarketContact,
+    PilotageTaskEvent,
+    PilotageWeek,
+    PilotageWeekChecklistItem,
+    PilotageWeeklyMetric,
+)

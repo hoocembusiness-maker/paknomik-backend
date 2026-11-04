@@ -6,6 +6,7 @@ db.sqlite3
 *.sqlite3.bak*
 *.sqlite3-journal
 /media/
+/hosting_catalog/
 /staticfiles/
 /static/
 __pycache__/

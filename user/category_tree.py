@@ -32,33 +32,29 @@ def _unique_categories(rows: list[Category]) -> list[Category]:
 
 
 def selectable_subcategories(parent: Category | None = None):
-    """Leaf subcategories for forms/filters; expands groups such as Promotion."""
-    if parent is None:
-        # Only start from nodes directly under a root. Including deeper leaves
-        # here would list them twice (once via their group, once as themselves).
-        qs = Category.objects.filter(
-            parent__isnull=False,
-            parent__parent__isnull=True,
-        ).select_related("parent", "parent__parent")
-    else:
-        qs = Category.objects.filter(parent=parent).select_related("parent", "parent__parent")
+    """Active product types for forms/filters (taxonomy v3 allow-list)."""
+    from user.taxonomy_v3 import ACTIVE_FAMILY_SLUGS, ACTIVE_TYPE_SLUGS, active_types_queryset
 
-    rows = list(qs.order_by("sort_order", "name_en"))
     if parent is None:
-        return _unique_categories(_flatten_selectable_rows(rows))
-
-    expanded: list[Category] = []
-    for row in rows:
-        children = list(
-            Category.objects.filter(parent=row)
+        rows = list(
+            active_types_queryset()
             .select_related("parent", "parent__parent")
             .order_by("sort_order", "name_en")
         )
-        if children:
-            expanded.extend(children)
-        else:
-            expanded.append(row)
-    return _unique_categories(expanded)
+        return _unique_categories(rows)
+
+    if parent.slug not in ACTIVE_FAMILY_SLUGS:
+        return []
+
+    rows = list(
+        Category.objects.filter(
+            parent=parent,
+            slug__in=ACTIVE_TYPE_SLUGS,
+        )
+        .select_related("parent", "parent__parent")
+        .order_by("sort_order", "name_en")
+    )
+    return _unique_categories(rows)
 
 
 def count_selectable_subcategories(parent: Category) -> int:
@@ -66,16 +62,21 @@ def count_selectable_subcategories(parent: Category) -> int:
 
 
 def _flatten_selectable_rows(rows: list[Category]) -> list[Category]:
+    from user.taxonomy_v3 import ACTIVE_TYPE_SLUGS
+
     expanded: list[Category] = []
     for row in rows:
         if row.parent and row.parent.parent_id:
-            expanded.append(row)
+            if row.slug in ACTIVE_TYPE_SLUGS:
+                expanded.append(row)
             continue
         children = list(
-            Category.objects.filter(parent=row).order_by("sort_order", "name_en")
+            Category.objects.filter(parent=row, slug__in=ACTIVE_TYPE_SLUGS).order_by(
+                "sort_order", "name_en"
+            )
         )
         if children:
             expanded.extend(children)
-        else:
+        elif row.slug in ACTIVE_TYPE_SLUGS:
             expanded.append(row)
     return expanded

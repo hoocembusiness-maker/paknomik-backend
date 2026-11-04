@@ -23,13 +23,15 @@ def build_search_suggestions(query: str, limit: int = 5) -> dict:
         }
 
     products = filter_products_by_text(
-        Product.objects.filter(is_active=True).select_related(
+        Product.objects.filter(
+            is_active=True, supplier__is_active=True, supplier__is_ghost=False
+        ).select_related(
             'category', 'subcategory'
         ),
         query,
     )[:limit]
     suppliers = filter_suppliers_by_text(
-        Supplier.objects.filter(is_active=True),
+        Supplier.objects.filter(is_active=True, is_ghost=False),
         query,
     )[:limit]
 

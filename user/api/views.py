@@ -55,7 +55,10 @@ from user.commission import register_order_commission
 from user.order_reviews import (
     OrderReviewError,
     annotate_delivery_reviews,
+    delivery_review_stats,
+    public_review_rows,
     save_order_review,
+    supplier_rating_is_public,
 )
 from user.order_workflow import (
     BUYER_CANCELLABLE,
@@ -195,11 +198,13 @@ def _buyer_display_name(user):
 
 class PlatformStatsView(APIView):
     def get(self, request):
-        supplier_count = Supplier.objects.filter(is_active=True).count()
-        product_count = Product.objects.filter(is_active=True).count()
+        supplier_count = Supplier.objects.filter(is_active=True, is_ghost=False).count()
+        product_count = Product.objects.filter(
+            is_active=True, supplier__is_active=True, supplier__is_ghost=False
+        ).count()
         category_count = Category.objects.count()
         country_count = (
-            Supplier.objects.filter(is_active=True, wilaya__isnull=False)
+            Supplier.objects.filter(is_active=True, is_ghost=False, wilaya__isnull=False)
             .values("wilaya")
             .distinct()
             .count()
@@ -216,16 +221,31 @@ class PlatformStatsView(APIView):
 
 class CategoryListView(APIView):
     def get(self, request):
-        qs = Category.objects.filter(parent__isnull=True).annotate(
+        from user.taxonomy_v3 import ACTIVE_FAMILY_SLUGS, ACTIVE_TYPE_SLUGS
+
+        qs = Category.objects.filter(
+            parent__isnull=True, slug__in=ACTIVE_FAMILY_SLUGS
+        ).annotate(
             active_product_count=Count(
-                "products", filter=Q(products__is_active=True), distinct=True
+                "products",
+                filter=Q(
+                    products__is_active=True,
+                    products__supplier__is_active=True,
+                    products__supplier__is_ghost=False,
+                ),
+                distinct=True,
             ),
-            subcategory_count=Count("children", distinct=True),
+            subcategory_count=Count(
+                "children",
+                filter=Q(children__slug__in=ACTIVE_TYPE_SLUGS),
+                distinct=True,
+            ),
             supplier_count=Count(
                 "products__supplier",
                 filter=Q(
                     products__is_active=True,
                     products__supplier__is_active=True,
+                    products__supplier__is_ghost=False,
                 ),
                 distinct=True,
             ),
@@ -258,7 +278,10 @@ class SubCategoryListView(APIView):
             for row in Category.objects.filter(pk__in=ids).annotate(
                 active_product_count=Count(
                     "products_subcategory",
-                    filter=Q(products_subcategory__is_active=True),
+                    filter=Q(
+                        products_subcategory__is_active=True,
+                        products_subcategory__supplier__is_ghost=False,
+                    ),
                     distinct=True,
                 )
             )
@@ -273,7 +296,9 @@ class SubCategoryListView(APIView):
 
 class SupplierListView(APIView):
     def get(self, request):
-        qs = annotate_delivery_reviews(Supplier.objects.filter(is_active=True)).annotate(
+        qs = annotate_delivery_reviews(
+            Supplier.objects.filter(is_active=True, is_ghost=False)
+        ).annotate(
             active_product_count=Count(
                 "products",
                 filter=Q(products__is_active=True),
@@ -350,7 +375,9 @@ class SupplierDetailView(APIView):
     def get(self, request, pk):
         try:
             supplier = (
-                annotate_delivery_reviews(Supplier.objects.filter(is_active=True))
+                annotate_delivery_reviews(
+                    Supplier.objects.filter(is_active=True, is_ghost=False)
+                )
                 .prefetch_related(
                     "products",
                     "products__category",
@@ -382,10 +409,49 @@ class SupplierDetailView(APIView):
         )
 
 
+class SupplierReviewsView(APIView):
+    """Buyer ratings for a boutique: date, buyer name, comment, and stars.
+
+    Hidden from the public when the supplier turns ratings off. The supplier
+    account can still read its own history.
+    """
+
+    def get(self, request, pk):
+        supplier = (
+            Supplier.objects.filter(pk=pk, is_active=True, is_ghost=False)
+            .select_related("settings")
+            .first()
+        )
+        if supplier is None:
+            return Response({"error": "Supplier not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        visible = supplier_rating_is_public(supplier)
+        is_owner = (
+            request.user.is_authenticated
+            and getattr(request.user, "supplier_id", None) == supplier.id
+        )
+        if not visible and not is_owner:
+            return Response(
+                {"showRating": False, "rating": 0, "reviewCount": 0, "reviews": []}
+            )
+
+        average, count = delivery_review_stats(supplier)
+        return Response(
+            {
+                "showRating": visible,
+                "rating": average,
+                "reviewCount": count,
+                "reviews": public_review_rows(supplier),
+            }
+        )
+
+
 class ProductListView(APIView):
     def get(self, request):
         qs = annotate_delivery_reviews(
-            Product.objects.filter(is_active=True),
+            Product.objects.filter(
+                is_active=True, supplier__is_active=True, supplier__is_ghost=False
+            ),
             supplier_field="supplier_id",
         ).select_related(
             "supplier", "supplier__settings", "category", "subcategory", "material"
@@ -484,7 +550,9 @@ class ProductDetailView(APIView):
     def get(self, request, pk):
         try:
             product = (
-                Product.objects.filter(is_active=True)
+                Product.objects.filter(
+                    is_active=True, supplier__is_active=True, supplier__is_ghost=False
+                )
                 .select_related("supplier", "category", "subcategory", "material")
                 .prefetch_related(
                     "images",
@@ -518,7 +586,9 @@ class ProductTechnicalSheetPdfView(APIView):
 
     def get(self, request, pk):
         product = (
-            Product.objects.filter(is_active=True, pk=pk)
+            Product.objects.filter(
+                is_active=True, supplier__is_active=True, supplier__is_ghost=False, pk=pk
+            )
             .select_related("supplier", "category", "subcategory", "material")
             .prefetch_related("images", "attribute_values__attribute", "attribute_values__attribute__unit")
             .first()
@@ -555,7 +625,7 @@ def _product_compare_image_url(product, request):
 
 def _build_product_compare_payload(products, request):
     from user.api.serializers import (
-        _attribute_display_value,
+        _join_attribute_values,
         _product_delivery_label,
         _product_dimensions,
         _product_moq_label,
@@ -609,20 +679,15 @@ def _build_product_compare_payload(products, request):
             continue
         values = []
         for product in products:
-            match = next(
-                (
-                    av
-                    for av in product.attribute_values.all()
-                    if av.attribute_id == attribute.id
-                ),
-                None,
-            )
-            if not match:
+            matches = [
+                av for av in product.attribute_values.all() if av.attribute_id == attribute.id
+            ]
+            if not matches:
                 values.append("—")
             elif attribute.attribute_type == "boolean":
-                values.append("Oui" if match.bool_value else "Non")
+                values.append("Oui" if matches[0].bool_value else "Non")
             else:
-                values.append(_attribute_display_value(match) or "—")
+                values.append(_join_attribute_values(matches) or "—")
         rows.append(
             {
                 "label": label,
@@ -673,7 +738,9 @@ class ProductCompareView(APIView):
             )
 
         products = list(
-            Product.objects.filter(is_active=True, pk__in=product_ids)
+            Product.objects.filter(
+                is_active=True, supplier__is_active=True, supplier__is_ghost=False, pk__in=product_ids
+            )
             .select_related("supplier", "category", "subcategory", "material")
             .prefetch_related(
                 "images",
@@ -737,7 +804,9 @@ class ProductCompareCandidatesView(APIView):
 
         try:
             anchor = (
-                Product.objects.filter(is_active=True)
+                Product.objects.filter(
+                    is_active=True, supplier__is_active=True, supplier__is_ghost=False
+                )
                 .select_related("supplier", "category", "subcategory", "material")
                 .prefetch_related("images", "search_tags", "attribute_values__attribute")
                 .get(pk=int(anchor_param))
@@ -1058,6 +1127,9 @@ class RegisterView(APIView):
                     "company_name": company or "",
                 },
             )
+            from buyer_space.wallet import grant_company_registration
+
+            grant_company_registration(user)
 
         handle_auth_login(user, method="email")
         return Response(_auth_payload(user), status=status.HTTP_201_CREATED)
@@ -1203,6 +1275,7 @@ class RfqView(APIView):
         phone = (request.data.get("phone") or "").strip()
         message = request.data.get("message", "").strip()
         destination = (request.data.get("destination") or "").strip()
+        category_id = request.data.get("categoryId")
         try:
             quantity_estimate = int(request.data.get("quantity"))
         except (TypeError, ValueError):
@@ -1217,18 +1290,50 @@ class RfqView(APIView):
             )
 
         try:
-            supplier = Supplier.objects.get(pk=supplier_id, is_active=True)
+            supplier = Supplier.objects.get(pk=supplier_id, is_active=True, is_ghost=False)
         except Supplier.DoesNotExist:
             return Response(
                 {"error": "Supplier not found"},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
+        from user.models import Category, RFQRequestFile
+        from user.quote_forms import (
+            QuoteFormError,
+            apply_snapshot,
+            clean_technical_files,
+            parse_specs,
+            prepare_specs,
+        )
+
+        category = None
+        snapshot = None
+        if category_id not in (None, ""):
+            if not str(category_id).isdigit():
+                return Response(
+                    {"error": "categoryId invalide."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            category = Category.objects.filter(pk=int(category_id)).first()
+            if category is None:
+                return Response(
+                    {"error": "Type d'emballage introuvable."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+            try:
+                snapshot = prepare_specs(supplier, category, parse_specs(request.data.get("specs")))
+            except QuoteFormError as exc:
+                return Response({"error": exc.message}, status=exc.status_code)
+
         photos = request.FILES.getlist("photos")
         photo_error = clean_photos(photos)
         if photo_error:
             return Response({"error": photo_error}, status=status.HTTP_400_BAD_REQUEST)
         photos = sanitized_photos(photos)
+        technical_files = request.FILES.getlist("files")
+        file_error = clean_technical_files(technical_files)
+        if file_error:
+            return Response({"error": file_error}, status=status.HTTP_400_BAD_REQUEST)
 
         product = None
         if product_id:
@@ -1251,6 +1356,14 @@ class RfqView(APIView):
             status=RFQRequest.Status.SUBMITTED,
         )
         save_photos(RFQRequestPhoto, "rfq", rfq, photos)
+        for upload in technical_files:
+            RFQRequestFile.objects.create(
+                rfq=rfq,
+                file=upload,
+                original_name=upload.name,
+            )
+        if snapshot is not None:
+            apply_snapshot(rfq, category, snapshot, actor=buyer)
 
         if buyer:
             _create_buyer_message(supplier, buyer, message or f"Demande de devis pour {quantity_estimate} unités.")
@@ -1274,8 +1387,9 @@ class RfqView(APIView):
 
         return Response(
             {
-                "success": True,
-                "message": (
+            "success": True,
+            "rfqId": rfq.pk,
+            "message": (
                     f"Votre demande de devis a été envoyée à {supplier.company_name}."
                 ),
             }
@@ -1298,6 +1412,7 @@ class NewsletterView(APIView):
 def _suppliers_for_subcategory(subcategory):
     suppliers = Supplier.objects.filter(
         is_active=True,
+        is_ghost=False,
         interested_subcategories=subcategory,
     ).distinct()
 
@@ -1306,6 +1421,7 @@ def _suppliers_for_subcategory(subcategory):
 
     return Supplier.objects.filter(
         is_active=True,
+        is_ghost=False,
         products__category=subcategory,
         products__is_active=True,
     ).distinct()
@@ -1686,16 +1802,18 @@ class SearchTagListView(APIView):
     def get(self, request):
         q = (request.query_params.get("q") or "").strip()
         try:
-            limit = min(int(request.query_params.get("limit", 20)), 50)
+            limit = min(int(request.query_params.get("limit", 300)), 300)
         except (TypeError, ValueError):
             limit = 20
-        qs = SearchTag.objects.all().order_by("-search_weight", "tag")
+        qs = SearchTag.objects.all()
         if q:
             qs = qs.filter(
                 Q(tag__icontains=q)
                 | Q(tag_fr__icontains=q)
                 | Q(tag_ar__icontains=q)
-            )
+            ).order_by("-search_weight", "tag")
+        else:
+            qs = qs.order_by("tag_fr", "tag")
         return Response(SearchTagSerializer(qs[:limit], many=True).data)
 
 
@@ -1910,8 +2028,8 @@ class SupplierRfqsView(APIView):
 
         qs = (
             RFQRequest.objects.filter(supplier_id=request.user.supplier_id)
-            .select_related("product")
-            .prefetch_related("responses", "photos")
+            .select_related("product", "category")
+            .prefetch_related("responses", "photos", "files")
             .order_by("-created_at")
         )
         for rfq in qs:
@@ -1968,6 +2086,15 @@ class SupplierRfqProcessingView(APIView):
                 rfq.responded_at = timezone.now()
                 update_fields.append("responded_at")
             rfq.save(update_fields=update_fields)
+            from user.models import RFQRequestEvent
+            from user.quote_forms import record_rfq_event
+
+            record_rfq_event(
+                rfq,
+                RFQRequestEvent.Action.STATUS_CHANGED,
+                actor=request.user,
+                snapshot={"to": RFQRequest.Status.IN_REVIEW},
+            )
 
         notification_link = f"/buyer?tab=orders&view=devis&rfq={rfq.pk}"
         AppNotification.objects.get_or_create(
@@ -2035,6 +2162,9 @@ class SupplierRfqRespondView(APIView):
             proposal_blocks=blocks,
             proposed_price=data.get("proposedPrice"),
             lead_time_days=data.get("leadTimeDays"),
+            moq=data.get("moq"),
+            customization_fee=data.get("customizationFee"),
+            commercial_terms=(data.get("commercialTerms") or "").strip(),
             status=QuoteResponse.Status.SUBMITTED,
         )
 
@@ -2050,6 +2180,24 @@ class SupplierRfqRespondView(APIView):
             update_fields.append("responded_at")
         if update_fields:
             rfq.save(update_fields=[*update_fields, "updated_at"])
+
+        from user.models import RFQRequestEvent
+        from user.quote_forms import record_rfq_event
+
+        record_rfq_event(
+            rfq,
+            RFQRequestEvent.Action.QUOTED,
+            actor=request.user,
+            comment=message,
+            snapshot={
+                "response_id": response_obj.id,
+                "proposed_price": str(response_obj.proposed_price or ""),
+                "moq": response_obj.moq,
+                "lead_time_days": response_obj.lead_time_days,
+                "customization_fee": str(response_obj.customization_fee or ""),
+                "commercial_terms": response_obj.commercial_terms,
+            },
+        )
 
         buyer = resolve_buyer_for_rfq(rfq)
         create_proposal_notice_message(
@@ -3186,7 +3334,7 @@ class BuyerSupplierMessagesView(APIView):
 
     def _get_supplier(self, pk):
         try:
-            return Supplier.objects.get(pk=pk, is_active=True)
+            return Supplier.objects.get(pk=pk, is_active=True, is_ghost=False)
         except Supplier.DoesNotExist:
             return None
 
@@ -3516,6 +3664,7 @@ class BuyerProfileView(APIView):
 
         user = request.user
         data = serializer.validated_data
+        previous_company = (user.company_name or "").strip()
         if "name" in data:
             user.first_name = data["name"].strip()
             user.last_name = ""
@@ -3537,6 +3686,10 @@ class BuyerProfileView(APIView):
             user.profile_picture = profile_picture
 
         user.save()
+        if not previous_company and (user.company_name or "").strip():
+            from buyer_space.wallet import grant_company_registration
+
+            grant_company_registration(user)
         return Response(BuyerProfileDetailSerializer(self._serialize(user, request)).data)
 
 
@@ -3818,7 +3971,7 @@ class BuyerContactsView(APIView):
 
         buyer_id = request.user.id
         supplier_ids = _buyer_contact_supplier_ids(buyer_id)
-        suppliers = Supplier.objects.filter(id__in=supplier_ids, is_active=True)
+        suppliers = Supplier.objects.filter(id__in=supplier_ids, is_active=True, is_ghost=False)
         suppliers_by_id = {supplier.id: supplier for supplier in suppliers}
 
         rows = []
@@ -4006,12 +4159,123 @@ class BuyerSearchHistoryDetailView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+def _visit_context_id(context, key):
+    raw = (context or {}).get(key)
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        return None
+
+
+def _visit_media_url(request, file_field):
+    if not file_field:
+        return None
+    try:
+        url = file_field.url
+    except ValueError:
+        return None
+    if request is not None and str(url).startswith("/"):
+        return request.build_absolute_uri(url)
+    return url
+
+
+class BuyerVisitHistoryView(APIView):
+    """Pages the signed-in buyer actually opened: boutiques and products."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if not _require_buyer(request.user):
+            return Response(
+                {"error": "Buyer account required"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        kind = (request.query_params.get("kind") or "boutique").strip().lower()
+        if kind not in {"boutique", "produit"}:
+            return Response(
+                {"error": "kind must be boutique or produit"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        event_type = (
+            Event.EventType.BUYER_PRODUCT_VIEW
+            if kind == "produit"
+            else Event.EventType.BUYER_SUPPLIER_VIEW
+        )
+        events = list(
+            Event.objects.filter(actor_user=request.user, event_type=event_type)
+            .order_by("-created_at")[:200]
+        )
+        if kind == "boutique":
+            events = [
+                event
+                for event in events
+                if (event.context or {}).get("source") != "product_page"
+            ]
+
+        supplier_ids = {
+            supplier_id
+            for event in events
+            if (supplier_id := _visit_context_id(event.context, "supplier_id"))
+        }
+        product_ids = {
+            product_id
+            for event in events
+            if (product_id := _visit_context_id(event.context, "product_id"))
+        }
+        suppliers = {
+            supplier.id: supplier
+            for supplier in Supplier.objects.filter(id__in=supplier_ids, is_ghost=False)
+        }
+        products = {
+            product.id: product
+            for product in Product.objects.filter(id__in=product_ids, is_active=True)
+            .select_related("supplier")
+            .prefetch_related("images")
+        }
+
+        rows = []
+        for event in events:
+            supplier_id = _visit_context_id(event.context, "supplier_id")
+            product_id = _visit_context_id(event.context, "product_id")
+            supplier = suppliers.get(supplier_id)
+            product = products.get(product_id) if kind == "produit" else None
+            if kind == "produit":
+                if product is None:
+                    continue
+                supplier = product.supplier
+                image = next(iter(product.images.all()), None)
+                thumbnail = _visit_media_url(request, image.image if image else None)
+                name = product.name
+            else:
+                if supplier is None:
+                    continue
+                thumbnail = _visit_media_url(request, supplier.logo)
+                name = supplier.company_name
+            seen = timezone.localtime(event.created_at)
+            rows.append(
+                {
+                    "id": event.id,
+                    "kind": kind,
+                    "name": name,
+                    "supplierId": supplier.id if supplier else supplier_id,
+                    "supplierName": supplier.company_name if supplier else "",
+                    "productId": product.id if product else None,
+                    "thumbnail": thumbnail,
+                    "date": seen.strftime("%d/%m/%Y"),
+                    "time": seen.strftime("%H:%M"),
+                }
+            )
+        return Response(rows)
+
+
 class BuyerFavoritesView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         qs = (
-            BuyerFavoriteSupplier.objects.filter(buyer=request.user)
+            BuyerFavoriteSupplier.objects.filter(buyer=request.user, supplier__is_ghost=False)
             .select_related("supplier")
             .prefetch_related("supplier__interested_categories")
         )
@@ -4029,7 +4293,7 @@ class BuyerFavoritesView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         try:
-            supplier = Supplier.objects.get(pk=supplier_id, is_active=True)
+            supplier = Supplier.objects.get(pk=supplier_id, is_active=True, is_ghost=False)
         except Supplier.DoesNotExist:
             return Response(
                 {"error": "Supplier not found"},
@@ -4093,7 +4357,11 @@ class BuyerProductFavoritesView(APIView):
             )
             .order_by("-created_at")
         )
-        products = [fav.product for fav in favorites if fav.product.is_active]
+        products = [
+            fav.product
+            for fav in favorites
+            if fav.product.is_active and not fav.product.supplier.is_ghost
+        ]
         product_ids = [product.id for product in products]
         return Response(
             {
@@ -4120,6 +4388,7 @@ class BuyerProductFavoritesView(APIView):
             product = Product.objects.select_related("supplier").get(
                 pk=product_id,
                 is_active=True,
+                supplier__is_ghost=False,
             )
         except Product.DoesNotExist:
             return Response(
@@ -4291,6 +4560,20 @@ class OrdersNotificationsSeenView(APIView):
         return Response({"ok": True})
 
 
+class RatingsNotificationsSeenView(APIView):
+    """Mark buyer-rating notifications as read (navbar badge)."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        AppNotification.objects.filter(
+            user_id=request.user.pk,
+            kind=AppNotification.Kind.SUPPLIER_RATED,
+            is_read=False,
+        ).update(is_read=True)
+        return Response({"ok": True})
+
+
 class UserNotificationsSummaryView(APIView):
     """Aggregated notification counts for the navbar user menu."""
 
@@ -4315,8 +4598,10 @@ class UserNotificationsSummaryView(APIView):
             "orders": 0,
             "rfqs": 0,
             "favorites": 0,
+            "ratings": 0,
             "total": 0,
             "rfqNotices": [],
+            "ratingNotices": [],
         }
 
         if user.supplier_id:
@@ -4361,6 +4646,15 @@ class UserNotificationsSummaryView(APIView):
                 created_at__gt=favorites_since,
             ).count()
             payload["favorites"] = supplier_favorites + product_favorites
+            rating_notes = AppNotification.objects.filter(
+                user_id=user.id,
+                is_read=False,
+                kind=AppNotification.Kind.SUPPLIER_RATED,
+            )
+            payload["ratings"] = rating_notes.count()
+            payload["ratingNotices"] = list(
+                rating_notes.order_by("-created_at").values("id", "title", "body", "link")[:8]
+            )
         else:
             payload["messages"] = Message.objects.filter(
                 buyer_id=user.id,
@@ -4399,5 +4693,6 @@ class UserNotificationsSummaryView(APIView):
             + payload["orders"]
             + payload["rfqs"]
             + payload["favorites"]
+            + payload["ratings"]
         )
         return Response(payload)

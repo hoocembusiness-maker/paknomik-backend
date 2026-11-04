@@ -40,7 +40,11 @@ from .models import (
     QuoteDemand,
     QuoteDemandEngagement,
     QuoteDemandSelection,
+    QuoteFormField,
+    QuoteFormTemplate,
     QuoteProposal,
+    RFQRequestEvent,
+    SupplierQuoteForm,
     RoleGrant,
     SearchTag,
     Supplier,
@@ -426,10 +430,11 @@ class SupplierAdmin(admin.ModelAdmin):
         'paknomik_plan',
         'is_active',
         'is_featured',
+        'is_ghost',
         'created_at',
         'logo',
     )
-    list_filter = ('is_active', 'is_featured', 'wilaya', 'paknomik_plan')
+    list_filter = ('is_active', 'is_featured', 'is_ghost', 'wilaya', 'paknomik_plan')
     search_fields = ('company_name', 'email', 'address', 'presentation')
     filter_horizontal = ('interested_categories', 'interested_subcategories')
     fieldsets = (
@@ -449,6 +454,7 @@ class SupplierAdmin(admin.ModelAdmin):
                     'logo',
                     'is_active',
                     'is_featured',
+                    'is_ghost',
                     'paknomik_plan',
                     'brand_color',
                     'brand_neutral_color',
@@ -734,3 +740,26 @@ class QuoteProposalAdmin(admin.ModelAdmin):
 class AppNotificationAdmin(admin.ModelAdmin):
     list_display = ("user", "kind", "title", "is_read", "created_at")
     list_filter = ("kind", "is_read")
+
+
+class QuoteFormFieldInline(admin.TabularInline):
+    model = QuoteFormField
+    extra = 0
+
+
+@admin.register(QuoteFormTemplate)
+class QuoteFormTemplateAdmin(admin.ModelAdmin):
+    list_display = ("title_fr", "category", "quantity_unit", "version")
+    inlines = [QuoteFormFieldInline]
+
+
+@admin.register(SupplierQuoteForm)
+class SupplierQuoteFormAdmin(admin.ModelAdmin):
+    list_display = ("supplier", "template", "physical_customization", "updated_at")
+    raw_id_fields = ("supplier", "template")
+
+
+@admin.register(RFQRequestEvent)
+class RFQRequestEventAdmin(admin.ModelAdmin):
+    list_display = ("rfq", "action", "actor", "created_at")
+    raw_id_fields = ("rfq", "actor")

@@ -39,7 +39,10 @@ def _load_local_env():
             os.environ[key] = value
 
 
-_load_local_env()
+# Railway injects its own variables. Never read the local .env there: it belongs
+# to the development machine and must not configure production.
+if not os.getenv('RAILWAY_ENVIRONMENT'):
+    _load_local_env()
 
 # Visitor geo: Cloudflare headers (prod) + optional GeoLite2 + HTTP fallback (ipwho.is).
 GEOIP2_DATABASE_PATH = os.getenv('GEOIP2_DATABASE_PATH', '')
@@ -98,7 +101,8 @@ INSTALLED_APPS = [
     #'allauth.socialaccount.providers.linkedin_oauth2',  
     'accounts',
      'allauth.socialaccount.providers.openid_connect',
-     'user'
+     'user',
+    'buyer_space.apps.BuyerSpaceConfig',
 
 ]
 
@@ -287,6 +291,12 @@ def _postgres_from_url(database_url):
 
 
 _database_url = os.getenv('DATABASE_URL', '').strip()
+if os.getenv('RAILWAY_ENVIRONMENT') and not _database_url:
+    from django.core.exceptions import ImproperlyConfigured
+    raise ImproperlyConfigured(
+        'DATABASE_URL is required on Railway. '
+        'The local SQLite file is development history and must not be used in production.'
+    )
 if _database_url:
     DATABASES = {'default': _postgres_from_url(_database_url)}
 else:

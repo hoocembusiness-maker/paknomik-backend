@@ -12,7 +12,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from user import crm
-from user.api.serializers import SupplierSampleRequestSerializer
+from user.api.serializers import BuyerSampleRequestSerializer, SupplierSampleRequestSerializer
 from user.models import (
     AppNotification,
     Message,
@@ -65,7 +65,7 @@ class SampleRequestCreateView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        supplier = Supplier.objects.filter(pk=data.get("supplierId"), is_active=True).first()
+        supplier = Supplier.objects.filter(pk=data.get("supplierId"), is_active=True, is_ghost=False).first()
         if supplier is None:
             return Response({"error": "Fournisseur introuvable."}, status=status.HTTP_404_NOT_FOUND)
         settings = sample_settings(supplier)
@@ -135,6 +135,27 @@ def _supplier_or_denied(request):
             {"error": "Compte fournisseur requis."}, status=status.HTTP_403_FORBIDDEN
         )
     return request.user.supplier_id, None
+
+
+class BuyerSampleRequestListView(APIView):
+    """Sample requests sent by the signed-in buyer. Never lists another account."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if request.user.supplier_id:
+            return Response(
+                {"error": "Buyer account required"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        qs = (
+            SampleRequest.objects.filter(buyer=request.user)
+            .select_related("product", "supplier")
+            .prefetch_related("photos")
+        )
+        return Response(
+            BuyerSampleRequestSerializer(qs, many=True, context={"request": request}).data
+        )
 
 
 class SupplierSampleRequestListView(APIView):

@@ -4,7 +4,7 @@ from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from user.models import Event, Supplier, User
+from user.models import Category, Event, Product, Supplier, User
 from user.reporting_period import month_period, preset_period, resolve_report_period
 
 
@@ -146,7 +146,92 @@ class DashboardPeriodEndpointTests(TestCase):
             by_key["product_appearance_share"]["label"],
             "Pourcentage d'apparition de produits par rapport au marché",
         )
-        self.assertEqual(by_key["product_appearance_share"]["changeState"], "masked")
+        self.assertEqual(by_key["product_appearance_share"]["value"], "100.0%")
+        self.assertNotEqual(by_key["product_appearance_share"]["changeState"], "masked")
+
+    def _event(self, event_type, supplier, **context):
+        event = Event.objects.create(
+            event_type=event_type,
+            actor_role=Event.ActorRole.SYSTEM,
+            context={"supplier_id": supplier.id, **context},
+        )
+        Event.objects.filter(pk=event.pk).update(created_at=timezone.now())
+
+    def test_visibility_totals_are_consistent_with_their_parts(self):
+        parent = Category.objects.create(name_en="Boxes", level=1)
+        sub = Category.objects.create(name_en="Mailer boxes", parent=parent, level=2)
+        peer = Supplier.objects.create(company_name="Peer Co", email="peer@example.com")
+        for owner in (self.supplier, peer):
+            Product.objects.create(
+                supplier=owner, category=parent, subcategory=sub, name="Box", description="Box"
+            )
+
+        appear = Event.EventType.SYSTEM_APPEAR_IN_SEARCH
+        for owner, store_count, product_count in ((self.supplier, 1, 3), (peer, 4, 1)):
+            for index in range(store_count):
+                self._event(appear, owner, source="suppliers", search_id=f"s-{owner.id}-{index}")
+            for index in range(product_count):
+                self._event(appear, owner, source="products", search_id=f"p-{owner.id}-{index}")
+        for _ in range(2):
+            self._event(Event.EventType.BUYER_PRODUCT_VIEW, self.supplier)
+        for _ in range(3):
+            self._event(Event.EventType.BUYER_SUPPLIER_VIEW, peer)
+        self._event(Event.EventType.BUYER_PRODUCT_VIEW, peer)
+
+        self.client.force_authenticate(self.seller)
+        payload = self.client.get("/api/supplier/dashboard/", {"period": "1d"}).json()
+        cards = [item["value"] for item in payload["visibility"]]
+        number = lambda position: int(cards[position - 1])
+        percent = lambda position: float(cards[position - 1].rstrip("%"))
+
+        self.assertEqual(number(1), number(7) + number(13))
+        self.assertEqual((number(1), number(7), number(13)), (4, 1, 3))
+        self.assertEqual(number(3), number(9) + number(11))
+        self.assertEqual((number(9), number(11)), (1, 2))
+
+        # Overview denominator is platform-wide (all suppliers), not subcategory peers.
+        # Supplier 4 of 9 appearances; boutique 1/5, products 3/4.
+        self.assertEqual(percent(2), 44.4)
+        self.assertLessEqual(min(percent(8), percent(14)), percent(2))
+        self.assertLessEqual(percent(2), max(percent(8), percent(14)))
+        self.assertLessEqual(min(percent(10), percent(12)), percent(4))
+        self.assertLessEqual(percent(4), max(percent(10), percent(12)))
+        self.assertGreaterEqual(payload["market"]["supplierCount"], 2)
+
+    def test_overview_shares_use_all_suppliers_not_only_subcategory_peers(self):
+        parent = Category.objects.create(name_en="Packaging", level=1)
+        own_sub = Category.objects.create(name_en="Own boxes", parent=parent, level=2)
+        other_sub = Category.objects.create(name_en="Other film", parent=parent, level=2)
+        outsider = Supplier.objects.create(company_name="Outsider Co", email="out@example.com")
+        Product.objects.create(
+            supplier=self.supplier,
+            category=parent,
+            subcategory=own_sub,
+            name="Box",
+            description="Box",
+        )
+        Product.objects.create(
+            supplier=outsider,
+            category=parent,
+            subcategory=other_sub,
+            name="Film",
+            description="Film",
+        )
+
+        appear = Event.EventType.SYSTEM_APPEAR_IN_SEARCH
+        for index in range(2):
+            self._event(appear, self.supplier, source="products", search_id=f"own-{index}")
+        for index in range(8):
+            self._event(appear, outsider, source="products", search_id=f"out-{index}")
+
+        self.client.force_authenticate(self.seller)
+        payload = self.client.get("/api/supplier/dashboard/", {"period": "1d"}).json()
+        by_key = {item["key"]: item for item in payload["visibility"]}
+
+        # 2 / (2 + 8) = 20% — outsider counts even without a shared subcategory.
+        self.assertEqual(by_key["search_appearances"]["value"], "2")
+        self.assertEqual(by_key["appearance_rate"]["value"], "20.0%")
+        self.assertGreaterEqual(payload["market"]["supplierCount"], 2)
 
     def test_admin_dashboards_accept_presets(self):
         self.client.force_authenticate(self.staff)

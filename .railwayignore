@@ -1,0 +1,31 @@
+# Replaces .gitignore for `railway up`. Keep every local exclusion here.
+# The hosted upload must not contain development history.
+
+.env
+.env.*
+!.env.example
+
+# Local database and any export of it
+db.sqlite3
+*.sqlite3
+*.sqlite3.bak*
+*.sqlite3-journal
+*.sql
+*.dump
+/backups/
+/dumps/
+/fixtures/
+
+# Uploaded photos, logos and PDFs from the local site.
+# Supplier logos and product photos travel in hosting_catalog/ instead.
+/media/
+
+/staticfiles/
+/static/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+*.mmdb
+.railway/

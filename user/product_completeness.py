@@ -52,15 +52,12 @@ def _technical_fill_ratio(product: Product) -> float:
     if not attribute_ids:
         return 1.0
 
-    values = {
-        row.attribute_id: row
+    filled_ids = {
+        row.attribute_id
         for row in product.attribute_values.filter(attribute_id__in=attribute_ids)
+        if _attribute_value_filled(row)
     }
-    filled = sum(
-        1
-        for attribute_id in attribute_ids
-        if attribute_id in values and _attribute_value_filled(values[attribute_id])
-    )
+    filled = sum(1 for attribute_id in attribute_ids if attribute_id in filled_ids)
     return filled / len(attribute_ids)
 
 

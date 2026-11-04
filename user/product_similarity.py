@@ -82,13 +82,17 @@ def _attribute_category(product: Product) -> Category | None:
     return category
 
 
-def _attribute_values_map(product: Product) -> dict[int, ProductAttributeValue]:
+def _attribute_values_map(product: Product) -> dict[int, list[ProductAttributeValue]]:
     cache = getattr(product, '_prefetched_objects_cache', {})
     if 'attribute_values' in cache:
         values = product.attribute_values.all()
     else:
         values = product.attribute_values.select_related('attribute').all()
-    return {av.attribute_id: av for av in values}
+    grouped: dict[int, list[ProductAttributeValue]] = {}
+    for av in values:
+        if _has_meaningful_value(av):
+            grouped.setdefault(av.attribute_id, []).append(av)
+    return grouped
 
 
 def _has_meaningful_value(av: ProductAttributeValue) -> bool:
@@ -228,15 +232,12 @@ class ProductSimilarityChecker:
             shared_ids = scoped_attribute_ids & set(left_values) & set(right_values)
 
             for attribute_id in sorted(shared_ids):
-                left_av = left_values[attribute_id]
-                right_av = right_values[attribute_id]
-                if not _has_meaningful_value(left_av) or not _has_meaningful_value(right_av):
-                    continue
-
-                attr_score = _score_attribute_pair(
-                    left_av,
-                    right_av,
-                    number_tolerance=self.number_tolerance,
+                left_av = left_values[attribute_id][0]
+                right_av = right_values[attribute_id][0]
+                attr_score = max(
+                    _score_attribute_pair(l_av, r_av, number_tolerance=self.number_tolerance)
+                    for l_av in left_values[attribute_id]
+                    for r_av in right_values[attribute_id]
                 )
                 weight = (_attribute_weight(left_av) + _attribute_weight(right_av)) / 2
                 details.append(
@@ -304,7 +305,7 @@ class ProductSimilarityChecker:
         if candidates is None:
             queryset = Product.objects.filter(subcategory_id=product.subcategory_id)
             if active_only:
-                queryset = queryset.filter(is_active=True)
+                queryset = queryset.filter(is_active=True, supplier__is_ghost=False)
             if product.pk:
                 queryset = queryset.exclude(pk=product.pk)
             candidates = queryset.prefetch_related(
@@ -359,6 +360,7 @@ def find_similar_products(
     queryset = Product.objects.filter(
         subcategory_id=product.subcategory_id,
         is_active=True,
+        supplier__is_ghost=False,
     ).exclude(pk=product.pk)
     return list(
         queryset.select_related("supplier", "category", "subcategory", "material")

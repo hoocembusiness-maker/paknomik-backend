@@ -227,3 +227,33 @@ class CategoryBenchmarkTests(TestCase):
             self.assertNotIn("categoryCumulative", series)
         self.assertIsNone(payload["chart"]["categoryLabel"])
         self.assertEqual(payload["group"]["hint"], "Données de catégorie insuffisantes pour préserver l'anonymat")
+
+    def test_alone_in_subcategory_shows_values_with_full_comparative_share(self):
+        set_setting("benchmark_min_suppliers", "5")
+        _appearance(self.supplier.id, "products")
+        _appearance(self.supplier.id, "products")
+        payload = self._payload()
+        self.assertEqual(payload["group"]["supplierCount"], 1)
+        self.assertFalse(payload["group"]["masked"])
+        card = self._card(payload, "search_appearances")
+        self.assertEqual(card["value"], "2")
+        self.assertEqual(card["pill"], "2 (100%)")
+        rate = self._card(payload, "product_appearance_share")
+        self.assertNotEqual(rate["value"], "—")
+        self.assertIn("(100%)", rate["pill"])
+
+    def test_pragmadinar_card_shows_spent_not_balance(self):
+        from user.models import PragmadinarWallet
+        from user.pragmadinar import get_or_create_wallet
+
+        wallet = get_or_create_wallet(self.supplier, category="visibility")
+        wallet.balance = "150.00"
+        wallet.spent_total = "37.50"
+        wallet.save(update_fields=["balance", "spent_total", "updated_at"])
+
+        payload = self._payload()
+        card = self._activity(payload, "pragmadinar")
+        self.assertEqual(card["value"], "37.50")
+        self.assertEqual(card["pill"], "37.50 (100%)")
+        self.assertNotEqual(card["value"], "150")
+        self.assertNotEqual(card["value"], "150.00")
