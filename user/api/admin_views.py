@@ -141,11 +141,13 @@ class AdminEventsMetaView(APIView):
             if prefix in categories:
                 categories[prefix].append({"value": value, "label": label})
 
+        non_admin = Event.objects.exclude(actor_role=Event.ActorRole.ADMIN)
         counts = {
             "total": Event.objects.count(),
-            "buyer": Event.objects.filter(event_type__startswith="buyer.").count(),
-            "seller": Event.objects.filter(event_type__startswith="seller.").count(),
-            "system": Event.objects.filter(event_type__startswith="system.").count(),
+            "buyer": non_admin.filter(event_type__startswith="buyer.").count(),
+            "seller": non_admin.filter(event_type__startswith="seller.").count(),
+            "system": non_admin.filter(event_type__startswith="system.").count(),
+            "admin": Event.objects.filter(actor_role=Event.ActorRole.ADMIN).count(),
         }
 
         return Response({"categories": categories, "counts": counts})
@@ -175,8 +177,12 @@ class AdminEventsListView(APIView):
             "actor_user__supplier",
         ).order_by("-created_at")
 
-        if category in {"buyer", "seller", "system"}:
-            qs = qs.filter(event_type__startswith=f"{category}.")
+        if category == "admin":
+            qs = qs.filter(actor_role=Event.ActorRole.ADMIN)
+        elif category in {"buyer", "seller", "system"}:
+            qs = qs.filter(event_type__startswith=f"{category}.").exclude(
+                actor_role=Event.ActorRole.ADMIN
+            )
         if event_type:
             qs = qs.filter(event_type=event_type)
         if search:

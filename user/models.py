@@ -3188,6 +3188,7 @@ class Event(models.Model):
         SELLER = "seller", "Seller"
         VISITOR = "visitor", "Visitor"
         SYSTEM = "system", "System"
+        ADMIN = "admin", "Admin"
 
     class EventType(models.TextChoices):
         # Buyer — authentication & session

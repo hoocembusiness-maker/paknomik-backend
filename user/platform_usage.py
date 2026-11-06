@@ -148,6 +148,7 @@ def build_platform_usage_dashboard(
     )
     login_count = Event.objects.filter(
         event_type=login_event,
+        actor_role=role_cfg["actor_role"],
         created_at__date__gte=start,
         created_at__date__lte=end,
     ).count()

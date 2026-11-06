@@ -35,6 +35,9 @@ def log_event(
     request=None,
 ) -> Event:
     """Persist a canonical event row."""
+    if actor_user is not None and getattr(actor_user, "is_staff", False):
+        if actor_role != Event.ActorRole.SYSTEM:
+            actor_role = Event.ActorRole.ADMIN
     merged_context = dict(context or {})
     merged_context.update(geo_context_for_actor(actor_user, request))
     return Event.objects.create(
