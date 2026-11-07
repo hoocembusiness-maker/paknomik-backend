@@ -738,6 +738,10 @@ class Service(models.Model):
 class Product(models.Model):
     """A supplier's sellable packaging item (marketplace listing)."""
 
+    class ListingType(models.TextChoices):
+        SELL = "sell", "Produit à vendre"
+        MAKE = "make", "Produit à fabriquer"
+
     supplier = models.ForeignKey(
         Supplier, on_delete=models.CASCADE, related_name="products"
     )
@@ -795,6 +799,12 @@ class Product(models.Model):
     )
     min_order_quantity = models.PositiveIntegerField(default=1)
     lead_time_days = models.PositiveIntegerField(default=14)
+    listing_type = models.CharField(
+        max_length=8,
+        choices=ListingType.choices,
+        default=ListingType.SELL,
+        help_text="Vendu en l'état (commande directe) ou fabriqué sur demande (demande de devis).",
+    )
 
     is_active = models.BooleanField(default=True)
     is_featured = models.BooleanField(default=False)

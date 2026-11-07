@@ -1231,6 +1231,7 @@ class SupplierProductSerializer(serializers.ModelSerializer):
     emoji = serializers.SerializerMethodField()
     moq = serializers.SerializerMethodField()
     leadTimeDays = serializers.IntegerField(source="lead_time_days")
+    listingType = serializers.CharField(source="listing_type", read_only=True)
     priceFrom = serializers.SerializerMethodField()
     priceBadge = serializers.SerializerMethodField()
     delivery = serializers.SerializerMethodField()
@@ -1253,6 +1254,7 @@ class SupplierProductSerializer(serializers.ModelSerializer):
             "emoji",
             "moq",
             "leadTimeDays",
+            "listingType",
             "priceFrom",
             "priceBadge",
             "delivery",
@@ -1343,6 +1345,11 @@ class SupplierProductFormSerializer(serializers.ModelSerializer):
     leadTimeDays = serializers.IntegerField(
         source="lead_time_days", min_value=0, default=14
     )
+    listingType = serializers.ChoiceField(
+        source="listing_type",
+        choices=Product.ListingType.choices,
+        default=Product.ListingType.SELL,
+    )
     technicalAttributes = serializers.JSONField(required=False, write_only=True, default=list)
     searchTagIds = serializers.ListField(
         child=serializers.IntegerField(min_value=1),
@@ -1411,6 +1418,7 @@ class SupplierProductFormSerializer(serializers.ModelSerializer):
             "price",
             "priceMax",
             "leadTimeDays",
+            "listingType",
             "technicalAttributes",
             "searchTagIds",
             "customKeywords",
@@ -1814,12 +1822,14 @@ class ProductListSerializer(serializers.ModelSerializer):
     boutiqueSearchPriority = serializers.SerializerMethodField()
     supplierLogo = serializers.SerializerMethodField()
     subcategoryId = serializers.IntegerField(source="subcategory_id", allow_null=True, read_only=True)
+    listingType = serializers.CharField(source="listing_type", read_only=True)
 
     class Meta:
         model = Product
         fields = [
             "id",
             "name",
+            "listingType",
             "supplierId",
             "supplierName",
             "supplierLogo",
@@ -2574,6 +2584,15 @@ class OrderCreateSerializer(serializers.Serializer):
             )
         except Product.DoesNotExist:
             raise serializers.ValidationError({"productId": "Produit introuvable."})
+        if product.listing_type == Product.ListingType.MAKE:
+            raise serializers.ValidationError(
+                {
+                    "productId": (
+                        "Ce produit est fabriqué sur demande : "
+                        "envoyez une demande de devis au fournisseur."
+                    )
+                }
+            )
         if attrs["quantity"] < product.min_order_quantity:
             raise serializers.ValidationError(
                 {

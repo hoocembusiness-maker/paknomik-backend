@@ -664,6 +664,7 @@ def _resolve_target_slug(product) -> tuple[str | None, bool]:
 
 
 def _remap_products(type_by_slug: dict, legacy_type) -> dict:
+    from user.crm import fields_missing_from_db
     from user.models import Product
 
     report = {
@@ -675,7 +676,10 @@ def _remap_products(type_by_slug: dict, legacy_type) -> dict:
         "mapping_notes": [],
     }
 
-    for product in Product.objects.select_related("category", "subcategory").iterator():
+    products = Product.objects.select_related("category", "subcategory").defer(
+        *fields_missing_from_db(Product)
+    )
+    for product in products.iterator():
         target_slug, ambiguous = _resolve_target_slug(product)
         if product.subcategory_id in PHARMA_FINISHED_SUBCATEGORY_IDS:
             report["pharma_finished_kept_legacy"].append(product.id)

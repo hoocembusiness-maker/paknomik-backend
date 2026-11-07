@@ -70,6 +70,7 @@ PRODUCT_FIELDS = (
     "price_max",
     "min_order_quantity",
     "lead_time_days",
+    "listing_type",
     "is_active",
     "is_featured",
     "custom_keywords",
