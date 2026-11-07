@@ -241,7 +241,10 @@ class PragmadinarWalletTests(TestCase):
         from user.pragmadinar import grant_supplier_welcome_pragmadinar
 
         entries = grant_supplier_welcome_pragmadinar(self.supplier)
-        self.assertEqual({entry.wallet.category for entry in entries}, {"visibility"})
+        self.assertEqual(
+            {entry.wallet.category: entry.amount for entry in entries},
+            {"visibility": Decimal("100"), "analytics": Decimal("30"), "promotion": Decimal("70")},
+        )
         self.assertEqual(sum(entry.amount for entry in entries), Decimal("200"))
         self.assertEqual(sum(entry.amount_dzd for entry in entries), Decimal("40000.00"))
 

@@ -52,6 +52,8 @@ from user.pragmadinar import (
     OPPORTUNITY_SERVICE_CODE,
     PUBLIC_QUOTE_ENGAGED_CAP,
     QUOTE_PUBLIC_COOLDOWN_HOURS,
+    UNBILLED_SERVICE_CODES,
+    WELCOME_SPLIT_PERCENT,
     access_label,
     format_cost_label,
     format_pragmadinar_amount,
@@ -79,7 +81,7 @@ from user.proposal_commerce import (
 )
 from user.events import log_buyer_event, log_system_event
 from user.photo_uploads import clean_photos, sanitized_photos, save_photos, strip_metadata
-from user.platform_config import pragmadinar_rate_dzd
+from user.platform_config import pragmadinar_rate_dzd, supplier_welcome_pragmadinar
 from user.scoring import apply_score_delta
 
 MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024
@@ -864,6 +866,7 @@ class PragmadinarCatalogView(APIView):
                     "businessAccess": row.business_access,
                     "genereuxAccess": row.genereux_access,
                     "genereuxQuota": row.genereux_quota,
+                    "isBilled": row.code not in UNBILLED_SERVICE_CODES,
                 }
             )
         opportunity = next(
@@ -880,6 +883,12 @@ class PragmadinarCatalogView(APIView):
                 else "10",
                 "publicCooldownHours": QUOTE_PUBLIC_COOLDOWN_HOURS,
                 "engagedCap": PUBLIC_QUOTE_ENGAGED_CAP,
+                "welcomePragmadinar": format_pragmadinar_amount(
+                    supplier_welcome_pragmadinar()
+                ),
+                "welcomeSplitPercent": {
+                    category: percent for category, percent in WELCOME_SPLIT_PERCENT
+                },
             }
         )
 

@@ -56,7 +56,7 @@ class PragmadinarResetTests(TestCase):
             PragmadinarLedger.objects.filter(
                 wallet__supplier=supplier, entry_type="grant"
             ).count(),
-            1,
+            3,
         )
 
     def test_buyer_registration_does_not_grant_pragmadinar(self):
@@ -175,7 +175,7 @@ class UltraAdminPragmadinarTests(TestCase):
         self.assertEqual(again.status_code, 400)
         self.assertEqual(
             PragmadinarLedger.objects.filter(wallet__supplier=created, entry_type="grant").count(),
-            1,
+            3,
         )
 
     def test_adjustment_records_before_and_after(self):

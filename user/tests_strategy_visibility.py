@@ -46,6 +46,16 @@ class StrategyVisibilityServicesTests(TestCase):
         self.assertFalse(by_code["visibility.store_favorited"]["onPriceList"])
         self.assertFalse(by_code["commercial.pak_dating"]["onPriceList"])
         self.assertNotIn("visibility.product_compared", by_code)
+        self.assertFalse(by_code["visibility.vitrine_extra"]["isBilled"])
+        self.assertFalse(by_code["promo.sponsored_banner"]["isBilled"])
+        self.assertTrue(by_code["intel.report_monthly"]["isBilled"])
+        self.assertTrue(by_code["commercial.category_leads"]["isBilled"])
+        payload = response.json()
+        self.assertEqual(payload["welcomePragmadinar"], "200.00")
+        self.assertEqual(
+            payload["welcomeSplitPercent"],
+            {"visibility": 50, "analytics": 15, "promotion": 35},
+        )
 
     def test_a_service_is_listed_in_only_one_wallet(self):
         seed_pragmadinar_catalog()

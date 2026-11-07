@@ -734,9 +734,22 @@ def normalize_legacy_welcome_grant(supplier):
     return entry
 
 
+WELCOME_SPLIT_PERCENT = (("visibility", 50), ("analytics", 15), ("promotion", 35))
+
+
+def _welcome_split(amount: Decimal) -> list[tuple[str, Decimal]]:
+    """Visibility absorbs the rounding remainder so the parts always sum to amount."""
+    parts = [
+        (category, (amount * percent / 100).quantize(Decimal("0.01")))
+        for category, percent in WELCOME_SPLIT_PERCENT[1:]
+    ]
+    first = WELCOME_SPLIT_PERCENT[0][0]
+    return [(first, amount - sum(value for _, value in parts)), *parts]
+
+
 @transaction.atomic
 def grant_supplier_welcome_pragmadinar(supplier, *, actor=None):
-    """Idempotent welcome credit: 200 Pragmadinar once, on a single wallet."""
+    """Idempotent welcome credit, split 50/15/35 across visibility/analytics/promotion."""
     from user.models import PragmadinarLedger
     from user.platform_config import supplier_welcome_pragmadinar
 
@@ -747,16 +760,21 @@ def grant_supplier_welcome_pragmadinar(supplier, *, actor=None):
     if _welcome_grant_already_applied(supplier):
         return None
 
-    entry = credit_wallet(
-        supplier,
-        amount,
-        reason="Crédit de bienvenue Pragmadinar",
-        entry_type=PragmadinarLedger.EntryType.GRANT,
-        idempotency_key=f"{WELCOME_GRANT_IDEMPOTENCY_PREFIX}{supplier.pk}",
-        actor=actor,
-        wallet_category="visibility",
-    )
-    return [entry]
+    base_key = f"{WELCOME_GRANT_IDEMPOTENCY_PREFIX}{supplier.pk}"
+    entries = []
+    for category, part in _welcome_split(Decimal(amount)):
+        if part <= 0:
+            continue
+        entries.append(credit_wallet(
+            supplier,
+            part,
+            reason="Crédit de bienvenue Pragmadinar",
+            entry_type=PragmadinarLedger.EntryType.GRANT,
+            idempotency_key=base_key if category == "visibility" else f"{base_key}:{category}",
+            actor=actor,
+            wallet_category=category,
+        ))
+    return entries
 
 
 @transaction.atomic
