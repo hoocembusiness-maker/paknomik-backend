@@ -454,6 +454,11 @@ urlpatterns = [
         name="api_admin_supplier_balance",
     ),
     path(
+        "admin/suppliers/<int:pk>/visibility/",
+        pragmadinar_admin_views.AdminSupplierVisibilityView.as_view(),
+        name="api_admin_supplier_visibility",
+    ),
+    path(
         "admin/pragmadinar/summary/",
         pragmadinar_admin_views.AdminPragmadinarSummaryView.as_view(),
         name="api_admin_pragmadinar_summary",

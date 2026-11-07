@@ -217,6 +217,40 @@ class AdminSupplierBalanceView(APIView):
         return Response(_serialize_entry(entry))
 
 
+class AdminSupplierVisibilityView(APIView):
+    """Hide or show a supplier and its products on the public site (`is_ghost`)."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        denied = _deny_unless_ultra(request)
+        if denied:
+            return denied
+        supplier = Supplier.objects.filter(pk=pk).first()
+        if supplier is None:
+            return Response({"error": "Fournisseur introuvable."}, status=404)
+        hidden = request.data.get("hidden")
+        if not isinstance(hidden, bool):
+            return Response(
+                {"error": "Le champ « hidden » doit valoir true ou false.", "code": "invalid_payload"},
+                status=400,
+            )
+        previous = supplier.is_ghost
+        if previous != hidden:
+            supplier.is_ghost = hidden
+            supplier.save(update_fields=["is_ghost", "updated_at"])
+            rbac.log_audit(
+                request.user,
+                "supplier.hide" if hidden else "supplier.show",
+                entity_type="Supplier",
+                entity_id=supplier.pk,
+                old_value={"isHidden": previous},
+                new_value={"isHidden": hidden},
+                request=request,
+            )
+        return Response({"supplierId": supplier.pk, "isHidden": supplier.is_ghost})
+
+
 class AdminPragmadinarSummaryView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -296,6 +330,7 @@ class AdminPragmadinarSuppliersView(APIView):
                     "adminAdded": format_pragmadinar_amount(totals["adminAdded"]),
                     "lastConsumption": totals["lastConsumption"].isoformat() if totals["lastConsumption"] else None,
                     "consumptionCount": totals["consumptionCount"],
+                    "isHidden": supplier.is_ghost,
                 }
             )
         return Response({"count": total, "page": page, "pageSize": page_size, "results": rows})

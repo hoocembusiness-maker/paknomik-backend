@@ -217,3 +217,43 @@ class UltraAdminPragmadinarTests(TestCase):
         )
         self.assertEqual(detail.status_code, 200)
         self.assertEqual(detail.json()["refType"], "")
+
+    def test_only_ultra_admin_can_hide_a_supplier(self):
+        url = reverse("api_admin_supplier_visibility", args=[self.supplier.pk])
+        staff = User.objects.create_user(
+            username="staff", email="staff@example.com", password="Testpass!2345", is_staff=True
+        )
+        for user in (self.buyer, staff):
+            other = APIClient()
+            other.force_authenticate(user)
+            self.assertEqual(other.post(url, {"hidden": True}, format="json").status_code, 403)
+        self.supplier.refresh_from_db()
+        self.assertFalse(self.supplier.is_ghost)
+
+    def test_ultra_admin_hides_and_shows_a_supplier(self):
+        from user.models import AuditLog
+
+        url = reverse("api_admin_supplier_visibility", args=[self.supplier.pk])
+        self.assertEqual(self.client.post(url, {"hidden": "yes"}, format="json").status_code, 400)
+
+        response = self.client.post(url, {"hidden": True}, format="json")
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["isHidden"])
+        self.supplier.refresh_from_db()
+        self.assertTrue(self.supplier.is_ghost)
+        rows = self.client.get(reverse("api_admin_pragmadinar_suppliers")).json()["results"]
+        self.assertTrue(next(r for r in rows if r["supplierId"] == self.supplier.pk)["isHidden"])
+
+        self.client.post(url, {"hidden": False}, format="json")
+        self.supplier.refresh_from_db()
+        self.assertFalse(self.supplier.is_ghost)
+        self.assertEqual(
+            list(
+                AuditLog.objects.filter(entity_id=self.supplier.pk, action__startswith="supplier.")
+                .order_by("id")
+                .values_list("action", flat=True)
+            ),
+            ["supplier.hide", "supplier.show"],
+        )
+        missing = reverse("api_admin_supplier_visibility", args=[999999])
+        self.assertEqual(self.client.post(missing, {"hidden": True}, format="json").status_code, 404)
