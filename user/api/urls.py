@@ -449,6 +449,11 @@ urlpatterns = [
         name="api_admin_supplier_create",
     ),
     path(
+        "admin/suppliers/onboard/",
+        pragmadinar_admin_views.AdminSupplierOnboardView.as_view(),
+        name="api_admin_supplier_onboard",
+    ),
+    path(
         "admin/suppliers/<int:pk>/balance/",
         pragmadinar_admin_views.AdminSupplierBalanceView.as_view(),
         name="api_admin_supplier_balance",

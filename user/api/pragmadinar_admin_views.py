@@ -1,5 +1,6 @@
 """Ultra-admin supplier accounts and Pragmadinar ledger."""
 
+import json
 from decimal import Decimal
 
 from django.contrib.auth.password_validation import validate_password
@@ -9,6 +10,7 @@ from django.db.models import Q, Sum
 from django.utils.dateparse import parse_date
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -174,6 +176,106 @@ class AdminSupplierCreateView(APIView):
                 "balance": format_pragmadinar_amount(totals["balance"]),
             },
             status=201,
+        )
+
+
+def _onboard_payload(result):
+    totals = _supplier_totals(result.supplier)
+    payload = {
+        "supplierId": result.supplier.pk,
+        "companyName": result.supplier.company_name,
+        "email": result.supplier.email,
+        "username": result.user.username,
+        "created": result.created,
+        "isHidden": result.supplier.is_ghost,
+        "balance": format_pragmadinar_amount(totals["balance"]),
+        "productsCreated": [
+            {
+                "id": product.pk,
+                "name": product.name,
+                "categoryId": product.category_id,
+                "subcategoryId": product.subcategory_id,
+                "listingType": product.listing_type,
+            }
+            for product in result.products_created
+        ],
+        "productsSkipped": [
+            {"name": item.name, "reason": item.skip_reason}
+            for item in result.products_skipped
+        ],
+        "pdfExtractedChars": len(result.pdf_text),
+    }
+    if result.password:
+        payload["password"] = result.password
+    return payload
+
+
+class AdminSupplierOnboardView(APIView):
+    """Create a supplier from company name, email, and an optional PDF listing."""
+
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    def post(self, request):
+        denied = _deny_unless_ultra(request)
+        if denied:
+            return denied
+
+        company = (
+            request.data.get("companyName") or request.data.get("name") or ""
+        ).strip()
+        email = (request.data.get("email") or "").strip()
+        listing = request.FILES.get("listing") or request.FILES.get("pdf")
+        ghost = request.data.get("hidden")
+        if isinstance(ghost, str):
+            ghost = ghost.strip().lower() in {"1", "true", "yes", "on"}
+        else:
+            ghost = bool(ghost)
+
+        specs = request.data.get("products") or request.data.get("productSpecs")
+        if isinstance(specs, str) and specs.strip():
+            try:
+                specs = json.loads(specs)
+            except json.JSONDecodeError:
+                return Response(
+                    {"error": "Le JSON des produits est invalide.", "code": "invalid_products"},
+                    status=400,
+                )
+        if specs is not None and not isinstance(specs, list):
+            return Response(
+                {"error": "Les produits doivent être une liste.", "code": "invalid_products"},
+                status=400,
+            )
+
+        from user.supplier_onboarding import OnboardError, onboard_supplier
+
+        try:
+            result = onboard_supplier(
+                company,
+                email,
+                pdf_source=listing,
+                product_specs=specs,
+                ghost=ghost,
+                actor=request.user,
+            )
+        except OnboardError as exc:
+            return Response({"error": str(exc), "code": "onboard_invalid"}, status=400)
+
+        rbac.log_audit(
+            request.user,
+            "supplier.onboard",
+            entity_type="Supplier",
+            entity_id=result.supplier.pk,
+            new_value={
+                "email": result.supplier.email,
+                "created": result.created,
+                "products": len(result.products_created),
+            },
+            request=request,
+        )
+        return Response(
+            _onboard_payload(result),
+            status=201 if result.created else 200,
         )
 
 
