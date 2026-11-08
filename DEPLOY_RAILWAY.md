@@ -50,6 +50,8 @@ Python visé : 3.12 (`runtime.txt`). Les versions épinglées sont celles qui to
 | `MEDIA_ROOT` | chemin d'un volume persistant, par exemple `/data/media` |
 | `DJANGO_SERVE_MEDIA` | `true` seulement après avoir monté ce volume |
 | `DJANGO_LOG_LEVEL` | `INFO` |
+| `RESEND_API_KEY` | clé API Resend. Obligatoire pour « mot de passe oublié » : Railway Hobby bloque le SMTP |
+| `DEFAULT_FROM_EMAIL` | `Paknomik <no_reply@paknomik.com>` (domaine vérifié dans Resend) |
 
 Générez la clé Django avec :
 

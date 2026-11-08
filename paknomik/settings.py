@@ -143,6 +143,10 @@ EMAIL_BACKEND = os.getenv(
     'EMAIL_BACKEND',
     'django.core.mail.backends.console.EmailBackend',
 )
+# Railway Hobby blocks outbound SMTP. Prefer Resend HTTPS when an API key is set.
+RESEND_API_KEY = os.getenv('RESEND_API_KEY', '').strip()
+if RESEND_API_KEY:
+    EMAIL_BACKEND = 'user.email_backends.ResendEmailBackend'
 # Spacemail official SMTP: mail.spacemail.com:465 with SSL (not STARTTLS).
 EMAIL_HOST = os.getenv('EMAIL_HOST', '').strip()
 EMAIL_PORT = int(os.getenv('EMAIL_PORT', '465') or 465)

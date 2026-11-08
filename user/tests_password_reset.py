@@ -197,6 +197,16 @@ class PasswordResetApiTests(TestCase):
         self.assertIn("temporairement", response.data["error"])
         self.assertEqual(len(mail.outbox), 0)
 
+    def test_https_mail_failure_does_not_claim_success(self):
+        with patch(
+            "user.password_reset.EmailMultiAlternatives.send",
+            side_effect=OSError("Resend HTTP 401"),
+        ):
+            response = self._request(self.user.email)
+        self.assertEqual(response.status_code, 503)
+        self.assertIn("temporairement", response.data["error"])
+        self.assertEqual(len(mail.outbox), 0)
+
     def test_request_rate_limiting(self):
         cache.clear()
         statuses = [

@@ -152,7 +152,11 @@ def request_password_reset(email: str) -> None:
     try:
         send_reset_email(user, uid, token)
     except (SMTPException, OSError) as exc:
-        logger.error("password_reset_email_failed: %s", exc.__class__.__name__)
+        logger.error(
+            "password_reset_email_failed: %s %s",
+            exc.__class__.__name__,
+            str(exc)[:200],
+        )
         raise PasswordResetError(SMTP_UNAVAILABLE_MESSAGE, status=503) from exc
     _mark_email_sent(normalized)
     logger.info("password_reset_email_sent")
