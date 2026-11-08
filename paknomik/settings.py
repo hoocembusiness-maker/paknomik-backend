@@ -132,11 +132,40 @@ AUTHENTICATION_BACKENDS = [
     'allauth.account.auth_backends.AuthenticationBackend',    # allauth
 ]
 
+def _env_flag(name, default=False):
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in ('1', 'true', 'yes', 'on')
+
+
 EMAIL_BACKEND = os.getenv(
     'EMAIL_BACKEND',
     'django.core.mail.backends.console.EmailBackend',
 )
-DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@paknomik.com')
+# Spacemail official SMTP: mail.spacemail.com:465 with SSL (not STARTTLS).
+EMAIL_HOST = os.getenv('EMAIL_HOST', '').strip()
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', '465') or 465)
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '').strip()
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+EMAIL_TIMEOUT = int(os.getenv('EMAIL_TIMEOUT', '20') or 20)
+if os.getenv('EMAIL_USE_SSL') is None and os.getenv('EMAIL_USE_TLS') is None:
+    EMAIL_USE_SSL = EMAIL_PORT == 465
+    EMAIL_USE_TLS = EMAIL_PORT == 587
+else:
+    EMAIL_USE_SSL = _env_flag('EMAIL_USE_SSL', EMAIL_PORT == 465)
+    EMAIL_USE_TLS = _env_flag('EMAIL_USE_TLS', False)
+if EMAIL_USE_SSL and EMAIL_USE_TLS:
+    EMAIL_USE_TLS = False
+DEFAULT_FROM_EMAIL = os.getenv(
+    'DEFAULT_FROM_EMAIL',
+    'Paknomik <no_reply@paknomik.com>',
+)
+# Django password-reset tokens (seconds). Default 30 minutes.
+PASSWORD_RESET_TIMEOUT = int(os.getenv('PASSWORD_RESET_TIMEOUT', '1800') or 1800)
+PASSWORD_RESET_EMAIL_COOLDOWN = int(
+    os.getenv('PASSWORD_RESET_EMAIL_COOLDOWN', '120') or 120,
+)
 LOGIN_URL = '/accounts/login/'
 SITE_ID = 1
 # Redirect after login / logout
@@ -206,6 +235,15 @@ REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': (
         'rest_framework.renderers.JSONRenderer',
     ),
+    'DEFAULT_THROTTLE_RATES': {
+        'password_reset': os.getenv('PASSWORD_RESET_THROTTLE', '5/hour'),
+        'password_reset_validate': os.getenv(
+            'PASSWORD_RESET_VALIDATE_THROTTLE', '30/hour'
+        ),
+        'password_reset_confirm': os.getenv(
+            'PASSWORD_RESET_CONFIRM_THROTTLE', '10/hour'
+        ),
+    },
 }
 
 from datetime import timedelta

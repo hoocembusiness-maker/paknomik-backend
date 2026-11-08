@@ -5,6 +5,7 @@ The React app calls these endpoints.
 
 from django.urls import include, path
 
+from user.api import password_reset_views
 from user.api import views
 from user.api import admin_views
 from user.api import analytics_views
@@ -101,6 +102,21 @@ urlpatterns = [
     path("auth/login/", views.LoginView.as_view(), name="api_login"),
     path("auth/logout/", views.LogoutView.as_view(), name="api_logout"),
     path("auth/register/", views.RegisterView.as_view(), name="api_register"),
+    path(
+        "auth/password-reset/",
+        password_reset_views.PasswordResetRequestView.as_view(),
+        name="api_password_reset",
+    ),
+    path(
+        "auth/password-reset/validate/",
+        password_reset_views.PasswordResetValidateView.as_view(),
+        name="api_password_reset_validate",
+    ),
+    path(
+        "auth/password-reset/confirm/",
+        password_reset_views.PasswordResetConfirmView.as_view(),
+        name="api_password_reset_confirm",
+    ),
     path("auth/google/", views.GoogleAuthStartView.as_view(), name="api_google_auth"),
     path("auth/google/token/", views.GoogleTokenAuthView.as_view(), name="api_google_token"),
     path("auth/google/callback/", views.GoogleAuthCallbackView.as_view(), name="api_google_callback"),
