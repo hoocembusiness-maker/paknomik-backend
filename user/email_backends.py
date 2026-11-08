@@ -11,6 +11,7 @@ from django.core.mail.backends.base import BaseEmailBackend
 
 
 RESEND_API_URL = 'https://api.resend.com/emails'
+RESEND_USER_AGENT = 'PaknomikBackend/1.0'
 
 
 class ResendEmailBackend(BaseEmailBackend):
@@ -58,6 +59,7 @@ class ResendEmailBackend(BaseEmailBackend):
                 'Authorization': f'Bearer {api_key}',
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
+                'User-Agent': RESEND_USER_AGENT,
             },
             method='POST',
         )

@@ -6,7 +6,7 @@ from urllib.error import HTTPError, URLError
 from django.core.mail import EmailMultiAlternatives
 from django.test import SimpleTestCase, override_settings
 
-from user.email_backends import RESEND_API_URL, ResendEmailBackend
+from user.email_backends import RESEND_API_URL, RESEND_USER_AGENT, ResendEmailBackend
 
 
 class _FakeResponse:
@@ -44,6 +44,7 @@ class ResendEmailBackendTests(SimpleTestCase):
             captured['method'] = request.get_method()
             captured['timeout'] = timeout
             captured['authorization'] = request.get_header('Authorization')
+            captured['user_agent'] = request.get_header('User-agent')
             captured['payload'] = json.loads(request.data.decode('utf-8'))
             return _FakeResponse()
 
@@ -56,6 +57,8 @@ class ResendEmailBackendTests(SimpleTestCase):
         self.assertEqual(captured['method'], 'POST')
         self.assertEqual(captured['timeout'], 5)
         self.assertEqual(captured['authorization'], 'Bearer re_test_key')
+        self.assertEqual(captured['user_agent'], RESEND_USER_AGENT)
+        self.assertFalse(captured['user_agent'].lower().startswith('python-urllib'))
         self.assertEqual(captured['payload']['to'], ['buyer@example.com'])
         self.assertEqual(captured['payload']['html'], '<p>Corps HTML</p>')
         self.assertEqual(captured['payload']['text'], 'Corps texte')
