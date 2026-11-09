@@ -54,6 +54,7 @@ SUPPLIER_FIELDS = (
     "presentation",
     "presentation_html",
     "brand_color",
+    "brand_button_color",
     "brand_neutral_color",
     "is_active",
     "is_featured",

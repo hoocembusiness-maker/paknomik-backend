@@ -3763,6 +3763,7 @@ class SupplierProfileEditView(APIView):
             "presentationHtml",
             "type",
             "brandColor",
+            "brandButtonColor",
             "brandNeutralColor",
         ):
             if api_key in request.data:

@@ -607,6 +607,7 @@ class AdminSuppliersListView(APIView):
                     "isFeatured": supplier.is_featured,
                     "isGhost": supplier.is_ghost,
                     "brandColor": supplier.brand_color or "",
+                    "brandButtonColor": supplier.brand_button_color or "",
                     "brandNeutralColor": supplier.brand_neutral_color or "#ffffff",
                 }
                 for supplier in suppliers
@@ -671,6 +672,7 @@ class AdminSupplierManageView(APIView):
                 "presentation",
                 "type",
                 "brandColor",
+                "brandButtonColor",
                 "brandNeutralColor",
             ):
                 if api_key in profile_payload:

@@ -719,7 +719,7 @@ def _remap_supplier_interests(family_by_slug: dict, type_by_slug: dict) -> None:
     from user.models import Supplier
 
     active_families = [f for slug, f in family_by_slug.items() if slug in ACTIVE_FAMILY_SLUGS]
-    for supplier in Supplier.objects.prefetch_related(
+    for supplier in Supplier.objects.only("id").prefetch_related(
         "interested_categories", "interested_subcategories"
     ).iterator():
         new_types = []

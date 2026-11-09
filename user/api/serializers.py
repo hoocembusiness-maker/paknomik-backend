@@ -337,6 +337,9 @@ def get_supplier_product_card_style(supplier):
     style["brandColor"] = (
         page.get("coverColor") or getattr(supplier, "brand_color", None) or "#6c3b9e"
     ).strip()
+    style["brandButtonColor"] = (
+        getattr(supplier, "brand_button_color", None) or ""
+    ).strip()
     style["brandNeutralColor"] = (
         getattr(supplier, "brand_neutral_color", None) or "#ffffff"
     ).strip()
@@ -1070,6 +1073,9 @@ class SupplierListSerializer(serializers.ModelSerializer):
     orderCount = serializers.SerializerMethodField()
     description = serializers.CharField(source="presentation", allow_null=True)
     brandColor = serializers.CharField(source="brand_color", allow_null=True)
+    brandButtonColor = serializers.CharField(
+        source="brand_button_color", allow_null=True
+    )
     brandNeutralColor = serializers.CharField(
         source="brand_neutral_color", allow_null=True
     )
@@ -1100,6 +1106,7 @@ class SupplierListSerializer(serializers.ModelSerializer):
             "orderCount",
             "description",
             "brandColor",
+            "brandButtonColor",
             "brandNeutralColor",
             "logo",
             "logoEmoji",
@@ -1635,6 +1642,9 @@ class SupplierProductFormSerializer(serializers.ModelSerializer):
 class SupplierDetailSerializer(SupplierListSerializer):
     tagline = serializers.SerializerMethodField()
     typeLabel = serializers.SerializerMethodField()
+    brandButtonColor = serializers.CharField(
+        source="brand_button_color", allow_null=True
+    )
     brandNeutralColor = serializers.CharField(
         source="brand_neutral_color", allow_null=True
     )
@@ -1674,6 +1684,7 @@ class SupplierDetailSerializer(SupplierListSerializer):
             "logoEmoji",
             "coverColor",
             "brandColor",
+            "brandButtonColor",
             "brandNeutralColor",
             "isVerified",
             "rating",
@@ -2425,6 +2436,11 @@ class ProductOrderDetailSerializer(SupplierProductSerializer):
         allow_null=True,
         read_only=True,
     )
+    supplierBrandButtonColor = serializers.CharField(
+        source="supplier.brand_button_color",
+        allow_null=True,
+        read_only=True,
+    )
     supplierCoverColor = serializers.SerializerMethodField()
     supplierLogo = serializers.SerializerMethodField()
     supplierLogoEmoji = serializers.SerializerMethodField()
@@ -2449,6 +2465,7 @@ class ProductOrderDetailSerializer(SupplierProductSerializer):
             "categoryId",
             "supplierId",
             "supplierBrandColor",
+            "supplierBrandButtonColor",
             "supplierCoverColor",
             "supplierLogo",
             "supplierLogoEmoji",
@@ -3046,6 +3063,9 @@ class SupplierProfileEditSerializer(serializers.ModelSerializer):
     brandColor = serializers.CharField(
         source="brand_color", allow_blank=True, required=False
     )
+    brandButtonColor = serializers.CharField(
+        source="brand_button_color", allow_blank=True, required=False
+    )
     brandNeutralColor = serializers.CharField(
         source="brand_neutral_color", required=False
     )
@@ -3075,6 +3095,7 @@ class SupplierProfileEditSerializer(serializers.ModelSerializer):
             "type",
             "typeLabel",
             "brandColor",
+            "brandButtonColor",
             "brandNeutralColor",
             "logo",
             "categoryIds",
@@ -3128,6 +3149,7 @@ class SupplierProfileEditSerializer(serializers.ModelSerializer):
             "presentation",
             "type",
             "brandColor",
+            "brandButtonColor",
             "brandNeutralColor",
         ):
             if data.get(key) is None:

@@ -457,6 +457,7 @@ class SupplierAdmin(admin.ModelAdmin):
                     'is_ghost',
                     'paknomik_plan',
                     'brand_color',
+                    'brand_button_color',
                     'brand_neutral_color',
                 ),
             },

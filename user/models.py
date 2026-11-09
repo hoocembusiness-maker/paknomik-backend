@@ -612,6 +612,12 @@ class Supplier(models.Model):
         help_text="Présentation mise en forme (HTML filtré). Le texte brut est dérivé dans « presentation ».",
     )
     brand_color = models.CharField(max_length=20, blank=True, null=True)
+    brand_button_color = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        help_text="Couleur d'arrière-plan des boutons (devis, commande, contact).",
+    )
     brand_neutral_color = models.CharField(
         max_length=7,
         choices=(
