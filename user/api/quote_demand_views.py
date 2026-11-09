@@ -2,6 +2,7 @@
 API for quote requests and supplier responses (devis).
 """
 
+import json
 import logging
 from datetime import date, timedelta
 from decimal import Decimal, InvalidOperation
@@ -987,6 +988,18 @@ class SupplierWalletRechargeView(APIView):
         )
 
 
+def _technical_characteristics(data):
+    raw = data.get("technicalCharacteristics") if hasattr(data, "get") else None
+    if not raw:
+        return {}
+    if isinstance(raw, str):
+        try:
+            raw = json.loads(raw)
+        except json.JSONDecodeError:
+            return {}
+    return raw if isinstance(raw, dict) else {}
+
+
 class QuoteDemandCandidateSuppliersView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -1206,6 +1219,21 @@ class BuyerQuoteDemandListCreateView(APIView):
             destination_city=destination_city,
             **market_fields,
         )
+        characteristics = _technical_characteristics(request.data)
+        type_id = request.data.get("productTypeId") or request.data.get("catalogTypeId")
+        updates = []
+        if characteristics:
+            demand.technical_characteristics = characteristics
+            updates.append("technical_characteristics")
+        if type_id and str(type_id).isdigit():
+            from user.models import ProductType
+
+            catalog_type = ProductType.objects.filter(pk=int(type_id)).first()
+            if catalog_type is not None:
+                demand.catalog_type = catalog_type
+                updates.append("catalog_type")
+        if updates:
+            demand.save(update_fields=updates)
         save_photos(QuoteDemandPhoto, "demand", demand, photos)
         for supplier in suppliers:
             QuoteDemandSelection.objects.create(demand=demand, supplier=supplier)

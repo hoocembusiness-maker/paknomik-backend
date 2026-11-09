@@ -152,6 +152,14 @@ class SuiteComponentDefinition(models.Model):
         on_delete=models.SET_NULL,
         related_name="definitions",
     )
+    marketplace_type = models.ForeignKey(
+        "user.ProductType",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="kit_component_definitions",
+        help_text="Type du marché (flacon, bouchon, étiquette). Le kit reste une entité à part.",
+    )
 
     class Meta:
         ordering = ["label"]

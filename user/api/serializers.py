@@ -42,6 +42,7 @@ from user.models import (
     Event,
     Product,
     ProductAttributeValue,
+    ProductVariant,
     ProductImage,
     RFQRequest,
     QuoteResponse,
@@ -2058,6 +2059,8 @@ class OrderExecutionFieldsMixin(serializers.Serializer):
 
 class SupplierOrderSerializer(OrderExecutionFieldsMixin, serializers.ModelSerializer):
     productName = serializers.CharField(source="product.name", read_only=True)
+    variantId = serializers.IntegerField(source="variant_id", read_only=True, allow_null=True)
+    variantLabel = serializers.SerializerMethodField()
     launchDate = serializers.SerializerMethodField()
     leadTimeDays = serializers.IntegerField(source="product.lead_time_days", read_only=True)
     statusLabel = serializers.SerializerMethodField()
@@ -2083,6 +2086,8 @@ class SupplierOrderSerializer(OrderExecutionFieldsMixin, serializers.ModelSerial
         fields = [
             "id",
             "productName",
+            "variantId",
+            "variantLabel",
             "amountEditable",
             "productPriceRange",
             "launchDate",
@@ -2107,6 +2112,14 @@ class SupplierOrderSerializer(OrderExecutionFieldsMixin, serializers.ModelSerial
             "created_at",
             *OrderExecutionFieldsMixin.EXECUTION_FIELDS,
         ]
+
+    def get_variantLabel(self, obj):
+        from user.catalog_taxonomy import format_variant_axes
+
+        variant = getattr(obj, "variant", None)
+        if variant is None:
+            return ""
+        return format_variant_axes(variant.axes)
 
     def get_commission(self, obj):
         """Supplier-side only: the buyer serializer never exposes commissions."""
@@ -2542,6 +2555,7 @@ BUYER_NOTE_MAX_LENGTH = 1000
 
 class OrderCreateSerializer(serializers.Serializer):
     productId = serializers.IntegerField()
+    variantId = serializers.IntegerField(required=False, allow_null=True)
     quantity = serializers.IntegerField(min_value=1)
     # Optional technical preference: a wish, never a guarantee of availability.
     specifications = serializers.CharField(
@@ -2601,7 +2615,17 @@ class OrderCreateSerializer(serializers.Serializer):
             )
         except Product.DoesNotExist:
             raise serializers.ValidationError({"productId": "Produit introuvable."})
-        if product.listing_type == Product.ListingType.MAKE:
+        from user.catalog_taxonomy import order_is_allowed
+
+        variant = None
+        variant_id = attrs.get("variantId")
+        if variant_id:
+            variant = ProductVariant.objects.filter(pk=variant_id, product=product).first()
+            if variant is None:
+                raise serializers.ValidationError(
+                    {"variantId": "Variante introuvable pour ce produit."}
+                )
+        if not order_is_allowed(product):
             raise serializers.ValidationError(
                 {
                     "productId": (
@@ -2610,14 +2634,18 @@ class OrderCreateSerializer(serializers.Serializer):
                     )
                 }
             )
-        if attrs["quantity"] < product.min_order_quantity:
+        minimum = product.min_order_quantity
+        if variant is not None and variant.moq:
+            minimum = variant.moq
+        if attrs["quantity"] < minimum:
             raise serializers.ValidationError(
                 {
                     "quantity": (
-                        f"La quantité minimum est de {product.min_order_quantity} unités."
+                        f"La quantité minimum est de {minimum} unités."
                     )
                 }
             )
+        attrs["variant"] = variant
 
         request = self.context.get("request")
         is_authenticated = bool(
@@ -2805,6 +2833,8 @@ class SupplierMessageCreateSerializer(serializers.Serializer):
 class BuyerOrderSerializer(OrderExecutionFieldsMixin, serializers.ModelSerializer):
     productName = serializers.CharField(source="product.name", read_only=True)
     productId = serializers.IntegerField(source="product_id", read_only=True)
+    variantId = serializers.IntegerField(source="variant_id", read_only=True, allow_null=True)
+    variantLabel = serializers.SerializerMethodField()
     launchDate = serializers.SerializerMethodField()
     launchTime = serializers.SerializerMethodField()
     leadTimeDays = serializers.IntegerField(source="product.lead_time_days", read_only=True)
@@ -2825,6 +2855,8 @@ class BuyerOrderSerializer(OrderExecutionFieldsMixin, serializers.ModelSerialize
             "id",
             "productName",
             "productId",
+            "variantId",
+            "variantLabel",
             "launchDate",
             "launchTime",
             "quantity",
@@ -2842,6 +2874,14 @@ class BuyerOrderSerializer(OrderExecutionFieldsMixin, serializers.ModelSerialize
             "supplierLocation",
             *OrderExecutionFieldsMixin.EXECUTION_FIELDS,
         ]
+
+    def get_variantLabel(self, obj):
+        from user.catalog_taxonomy import format_variant_axes
+
+        variant = getattr(obj, "variant", None)
+        if variant is None:
+            return ""
+        return format_variant_axes(variant.axes)
 
     def get_launchDate(self, obj):
         return obj.created_at.strftime("%d/%m/%Y")

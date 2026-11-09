@@ -876,7 +876,10 @@ class OrderCreateView(APIView):
         data = serializer.validated_data
         product = data["product"]
         quantity = data["quantity"]
+        variant = data.get("variant")
         unit_price = product.fixed_unit_price if product.fixed_unit_price is not None else 0
+        if variant is not None and variant.price_from is not None:
+            unit_price = variant.price_from
         buyer = request.user if request.user.is_authenticated else None
         is_export = data["trade_scope"] == TradeScope.EXPORT
 
@@ -884,6 +887,7 @@ class OrderCreateView(APIView):
             "buyer": buyer,
             "supplier": product.supplier,
             "product": product,
+            "variant": variant,
             "quantity": quantity,
             "unit_price": unit_price,
             "specifications": data.get("specifications", ""),
@@ -1998,7 +2002,9 @@ class SupplierOrdersView(APIView):
 
         qs = (
             Order.objects.filter(supplier_id=request.user.supplier_id)
-            .select_related("product", "buyer", "quote_proposal", "commission", "commission__mandate")
+            .select_related(
+                "product", "variant", "buyer", "quote_proposal", "commission", "commission__mandate"
+            )
             .prefetch_related("responses", "status_events")
             .order_by("-created_at")
         )
@@ -3875,7 +3881,9 @@ class BuyerOrdersView(APIView):
         _expire_stale_buyer_orders(qs)
         qs = (
             Order.objects.filter(buyer=request.user)
-            .select_related("product", "supplier", "quote_proposal", "supplier_review")
+            .select_related(
+                "product", "variant", "supplier", "quote_proposal", "supplier_review"
+            )
             .prefetch_related("status_events")
             .order_by("-created_at")
         )

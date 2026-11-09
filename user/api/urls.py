@@ -6,6 +6,7 @@ The React app calls these endpoints.
 from django.urls import include, path
 
 from user.api import password_reset_views
+from user.api import catalog_views
 from user.api import views
 from user.api import admin_views
 from user.api import analytics_views
@@ -58,6 +59,35 @@ urlpatterns = [
         "suppliers/<int:pk>/messages/",
         views.BuyerSupplierMessagesView.as_view(),
         name="api_buyer_supplier_messages",
+    ),
+    path("catalog/meta/", catalog_views.CatalogMetaView.as_view(), name="api_catalog_meta"),
+    path("catalog/types/", catalog_views.CatalogTypeListView.as_view(), name="api_catalog_types"),
+    path(
+        "catalog/types/<int:pk>/schema/",
+        catalog_views.CatalogTypeSchemaView.as_view(),
+        name="api_catalog_type_schema",
+    ),
+    path(
+        "catalog/types/<int:pk>/quote-prefill/",
+        catalog_views.CatalogQuotePrefillView.as_view(),
+        name="api_catalog_quote_prefill",
+    ),
+    path(
+        "catalog/types/<int:pk>/import-template/",
+        catalog_views.CatalogImportTemplateView.as_view(),
+        name="api_catalog_import_template",
+    ),
+    path(
+        "catalog/types/<int:pk>/import/",
+        catalog_views.CatalogImportView.as_view(),
+        name="api_catalog_import",
+    ),
+    path("catalog/search/", catalog_views.CatalogSearchView.as_view(), name="api_catalog_search"),
+    path("catalog/products/", catalog_views.CatalogProductView.as_view(), name="api_catalog_products"),
+    path(
+        "catalog/products/<int:pk>/",
+        catalog_views.CatalogProductDetailView.as_view(),
+        name="api_catalog_product_detail",
     ),
     path("products/", views.ProductListView.as_view(), name="api_products"),
     path("products/compare/", views.ProductCompareView.as_view(), name="api_products_compare"),

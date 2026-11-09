@@ -35,6 +35,10 @@ from .models import (
     PlatformSetting,
     Product,
     ProductAttributeValue,
+    ProductFamily,
+    ProductType,
+    ProductVariant,
+    TypeAlternative,
     ProductImage,
     ProductPackagingMapping,
     QuoteDemand,
@@ -445,6 +449,7 @@ class SupplierAdmin(admin.ModelAdmin):
                     'company_name',
                     'email',
                     'type',
+                    'kind',
                     'address',
                     'wilaya',
                     'website',
@@ -479,6 +484,11 @@ class ProductAttributeValueInline(admin.TabularInline):
 
 class ProductImageInline(admin.TabularInline):
     model = ProductImage
+    extra = 0
+
+
+class ProductVariantInline(admin.TabularInline):
+    model = ProductVariant
     extra = 0
 
 
@@ -545,11 +555,24 @@ class ProductAdmin(admin.ModelAdmin):
                 'fields': (
                     'is_active',
                     'is_featured',
+                    'is_flagship',
+                    'is_mixed',
+                ),
+            },
+        ),
+        (
+            'Gamme',
+            {
+                'fields': (
+                    'product_type',
+                    'offer_mode',
+                    'attributes',
+                    'technical_sheet',
                 ),
             },
         ),
     )
-    inlines = [ProductAttributeValueInline, ProductImageInline]
+    inlines = [ProductAttributeValueInline, ProductImageInline, ProductVariantInline]
 
 
 @admin.register(ProductAttributeValue)
@@ -764,3 +787,34 @@ class SupplierQuoteFormAdmin(admin.ModelAdmin):
 class RFQRequestEventAdmin(admin.ModelAdmin):
     list_display = ("rfq", "action", "actor", "created_at")
     raw_id_fields = ("rfq", "actor")
+
+
+class ProductTypeInline(admin.TabularInline):
+    model = ProductType
+    extra = 0
+    fields = ("slug", "name_fr", "sort_order", "legacy_category")
+    show_change_link = True
+
+
+@admin.register(ProductFamily)
+class ProductFamilyAdmin(admin.ModelAdmin):
+    list_display = ("name_fr", "slug", "sort_order", "legacy_category")
+    search_fields = ("name_fr", "slug")
+    raw_id_fields = ("legacy_category",)
+    inlines = [ProductTypeInline]
+
+
+@admin.register(ProductType)
+class ProductTypeAdmin(admin.ModelAdmin):
+    list_display = ("name_fr", "family", "slug", "legacy_category")
+    list_filter = ("family",)
+    search_fields = ("name_fr", "slug")
+    raw_id_fields = ("legacy_category",)
+
+
+@admin.register(TypeAlternative)
+class TypeAlternativeAdmin(admin.ModelAdmin):
+    list_display = ("from_type", "to_type", "level", "bidirectional", "reason")
+    list_filter = ("from_type", "to_type", "level")
+    list_editable = ("level", "bidirectional", "reason")
+    search_fields = ("reason", "from_type__name_fr", "to_type__name_fr")

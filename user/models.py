@@ -600,6 +600,21 @@ class Supplier(models.Model):
         db_index=True,
     )
     type = models.CharField(max_length=100, choices=TYPE_CHOICES, blank=True, null=True)
+    KIND_CHOICES = (
+        ("DISTRIBUTOR", "Distributeur"),
+        ("MANUFACTURER", "Fabricant"),
+        ("BOTH", "Distributeur et fabricant"),
+    )
+    kind = models.CharField(
+        max_length=16,
+        choices=KIND_CHOICES,
+        blank=True,
+        default="",
+        help_text=(
+            "Mode par défaut à la création d'une gamme, et badge. "
+            "Ne crée pas un catalogue séparé."
+        ),
+    )
     website = models.URLField(blank=True, null=True)
     instagram_url = models.URLField(blank=True, null=True)
     facebook_url = models.URLField(blank=True, null=True)
@@ -811,6 +826,45 @@ class Product(models.Model):
         default=ListingType.SELL,
         help_text="Vendu en l'état (commande directe) ou fabriqué sur demande (demande de devis).",
     )
+    class OfferMode(models.TextChoices):
+        STOCK = "STOCK", "À vendre"
+        SUR_MESURE = "SUR_MESURE", "Sur mesure"
+
+    product_type = models.ForeignKey(
+        "ProductType",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="products",
+        help_text="Type de la nouvelle taxonomie. Vide = fiche encore classée seulement par catégorie.",
+    )
+    offer_mode = models.CharField(
+        max_length=16,
+        choices=OfferMode.choices,
+        blank=True,
+        default="",
+        db_index=True,
+        help_text="STOCK = à vendre, SUR_MESURE = à concevoir. Vide = comportement historique.",
+    )
+    attributes = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Valeurs de la gamme, validées par le gabarit du type.",
+    )
+    technical_sheet = models.FileField(
+        upload_to="products/sheets/",
+        blank=True,
+        null=True,
+        help_text="Fiche technique PDF.",
+    )
+    is_flagship = models.BooleanField(
+        default=False,
+        help_text="Modèle phare du fournisseur pour ce type. Le classement le préfère.",
+    )
+    is_mixed = models.BooleanField(
+        default=False,
+        help_text="Standard et personnalisable : action principale selon le mode, lien vers l'autre.",
+    )
 
     is_active = models.BooleanField(default=True)
     is_featured = models.BooleanField(default=False)
@@ -902,6 +956,132 @@ class ProductImage(models.Model):
         return f"Image for {self.product.name}"
 
 
+class ProductFamily(models.Model):
+    """Niveau 1 de la taxonomie (« Catégorie » des formulaires)."""
+
+    slug = models.SlugField(max_length=80, unique=True)
+    name_fr = models.CharField(max_length=200)
+    name_en = models.CharField(max_length=200, blank=True)
+    name_ar = models.CharField(max_length=200, blank=True)
+    sort_order = models.PositiveSmallIntegerField(default=0)
+    legacy_category = models.ForeignKey(
+        Category,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="catalog_families",
+        help_text="Catégorie historique conservée. Rien n'est supprimé de l'ancien arbre.",
+    )
+
+    class Meta:
+        ordering = ["sort_order", "name_fr"]
+        verbose_name = "Famille de produits"
+        verbose_name_plural = "Familles de produits"
+
+    def __str__(self):
+        return self.name_fr
+
+
+class ProductType(models.Model):
+    """Niveau 2 (« Sous-catégorie »). Tout le reste est un attribut du gabarit."""
+
+    family = models.ForeignKey(
+        ProductFamily, on_delete=models.PROTECT, related_name="types"
+    )
+    slug = models.SlugField(max_length=80, unique=True)
+    name_fr = models.CharField(max_length=200)
+    name_en = models.CharField(max_length=200, blank=True)
+    name_ar = models.CharField(max_length=200, blank=True)
+    sort_order = models.PositiveSmallIntegerField(default=0)
+    attribute_schema = models.JSONField(default=list, blank=True)
+    legacy_category = models.ForeignKey(
+        Category,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="catalog_types",
+        help_text="Sous-catégorie historique. Conservée pour l'ancien catalogue.",
+    )
+
+    class Meta:
+        ordering = ["family__sort_order", "sort_order", "name_fr"]
+        verbose_name = "Type de produit"
+        verbose_name_plural = "Types de produit"
+
+    def __str__(self):
+        return self.name_fr
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+
+        from user.catalog_taxonomy import SchemaError, validate_attribute_schema
+
+        try:
+            self.attribute_schema = validate_attribute_schema(self.attribute_schema)
+        except SchemaError as exc:
+            raise ValidationError({"attribute_schema": exc.messages}) from exc
+
+
+class TypeAlternative(models.Model):
+    """Alternative commerciale entre deux types. Saisie manuelle, sans apprentissage."""
+
+    class Level(models.TextChoices):
+        DIRECT = "DIRECT", "Direct"
+        PROCHE = "PROCHE", "Proche"
+
+    from_type = models.ForeignKey(
+        ProductType, on_delete=models.CASCADE, related_name="alternatives_out"
+    )
+    to_type = models.ForeignKey(
+        ProductType, on_delete=models.CASCADE, related_name="alternatives_in"
+    )
+    level = models.CharField(max_length=8, choices=Level.choices)
+    bidirectional = models.BooleanField(default=True)
+    attribute_map = models.JSONField(default=dict, blank=True)
+    reason = models.CharField(max_length=200)
+
+    class Meta:
+        ordering = ["from_type_id", "to_type_id"]
+        verbose_name = "Alternative de type"
+        verbose_name_plural = "Alternatives de type"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["from_type", "to_type"],
+                name="uniq_type_alternative_pair",
+            ),
+            models.CheckConstraint(
+                check=~models.Q(from_type=models.F("to_type")),
+                name="type_alternative_distinct_types",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.from_type} → {self.to_type} ({self.level})"
+
+
+class ProductVariant(models.Model):
+    """SKU d'une gamme. Trois axes au plus (capacité, couleur, …)."""
+
+    product = models.ForeignKey(
+        Product, on_delete=models.CASCADE, related_name="variants"
+    )
+    sku = models.CharField(max_length=64, blank=True)
+    axes = models.JSONField(default=dict, blank=True)
+    price_from = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True
+    )
+    moq = models.PositiveIntegerField(null=True, blank=True)
+    is_available = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["id"]
+        verbose_name = "Variante"
+        verbose_name_plural = "Variantes"
+
+    def __str__(self):
+        return self.sku or f"Variante #{self.pk} — {self.product_id}"
+
+
 class NewsletterSubscriber(models.Model):
     email = models.EmailField(unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -958,6 +1138,14 @@ class Order(models.Model):
     )
     product = models.ForeignKey(
         Product, on_delete=models.PROTECT, related_name="orders"
+    )
+    variant = models.ForeignKey(
+        "ProductVariant",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="orders",
+        help_text="SKU commandé. Vide = commande historique sur la fiche seule.",
     )
     quantity = models.PositiveIntegerField()
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
@@ -2899,6 +3087,19 @@ class QuoteDemand(models.Model):
         upload_to="quote_demands/", blank=True, null=True
     )
     description = models.TextField()
+    catalog_type = models.ForeignKey(
+        "ProductType",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="quote_demands",
+        help_text="Type choisi dans le nouveau formulaire. La catégorie historique reste obligatoire.",
+    )
+    technical_characteristics = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Caractéristiques techniques préremplies depuis le gabarit du type.",
+    )
     status = models.CharField(
         max_length=16, choices=Status.choices, default=Status.OPEN, db_index=True
     )

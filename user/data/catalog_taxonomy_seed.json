@@ -1,0 +1,153 @@
+{
+  "families": [
+    {"slug": "contenants", "name_fr": "Contenants", "name_en": "Containers", "sort_order": 10, "legacy_slugs": ["bouteilles-et-flacons", "pots-gobelets-contenants"]},
+    {"slug": "fermetures", "name_fr": "Fermetures", "name_en": "Closures", "sort_order": 20, "legacy_slugs": ["fermetures-accessoires"]},
+    {"slug": "etiquettes", "name_fr": "Étiquettes", "name_en": "Labels", "sort_order": 30, "legacy_slugs": ["etiquettes"]},
+    {"slug": "cartons-et-boites", "name_fr": "Cartons et boîtes", "name_en": "Cartons and boxes", "sort_order": 40, "legacy_slugs": ["boites-et-cartons"]},
+    {"slug": "films-et-sacs", "name_fr": "Films et sacs", "name_en": "Films and bags", "sort_order": 50, "legacy_slugs": ["sacs-et-pochettes", "films-materiaux-souples"]}
+  ],
+  "types": [
+    {
+      "slug": "flacon",
+      "family": "contenants",
+      "name_fr": "Flacon",
+      "name_en": "Bottle",
+      "sort_order": 10,
+      "legacy_slugs": ["flacon-plastique", "flacon-verre", "bouteille-pet"],
+      "attributes": [
+        {"key": "capacite", "label": "Capacité", "kind": "number", "unit": "ml", "required": true, "filterable": true, "pivot_key": "capacite"},
+        {"key": "materiau", "label": "Matériau", "kind": "enum", "required": true, "filterable": true, "pivot_key": "materiau", "options": ["PET", "PEHD", "PP", "verre"]},
+        {"key": "diametre_col", "label": "Diamètre de col", "kind": "number", "unit": "mm", "required": true, "filterable": true},
+        {"key": "contact_alimentaire", "label": "Contact alimentaire", "kind": "bool", "required": true, "filterable": true, "pivot_key": "contact_alimentaire"},
+        {"key": "couleur", "label": "Couleur", "kind": "enum", "required": false, "filterable": true, "options": ["transparent", "blanc", "ambre", "autre"]},
+        {"key": "forme", "label": "Forme", "kind": "enum", "required": false, "filterable": true, "options": ["cylindrique", "ovale", "carré"]},
+        {"key": "bouchage", "label": "Bouchage", "kind": "text", "required": false, "filterable": false}
+      ]
+    },
+    {
+      "slug": "pot",
+      "family": "contenants",
+      "name_fr": "Pot",
+      "name_en": "Jar",
+      "sort_order": 20,
+      "legacy_slugs": ["pot-plastique", "pot-verre"],
+      "attributes": [
+        {"key": "capacite", "label": "Capacité", "kind": "number", "unit": "ml", "required": true, "filterable": true, "pivot_key": "capacite"},
+        {"key": "materiau", "label": "Matériau", "kind": "enum", "required": true, "filterable": true, "pivot_key": "materiau", "options": ["verre", "PP", "PET"]},
+        {"key": "diametre_ouverture", "label": "Diamètre d'ouverture", "kind": "number", "unit": "mm", "required": true, "filterable": true},
+        {"key": "contact_alimentaire", "label": "Contact alimentaire", "kind": "bool", "required": true, "filterable": true, "pivot_key": "contact_alimentaire"},
+        {"key": "couleur", "label": "Couleur", "kind": "enum", "required": false, "filterable": true, "options": ["transparent", "blanc", "ambre"]},
+        {"key": "forme", "label": "Forme", "kind": "enum", "required": false, "filterable": false, "options": ["rond", "carré"]}
+      ]
+    },
+    {
+      "slug": "bouchon",
+      "family": "fermetures",
+      "name_fr": "Bouchon",
+      "name_en": "Cap",
+      "sort_order": 10,
+      "legacy_slugs": ["bouchon-vis-plastique", "bouchon-flip-top"],
+      "attributes": [
+        {"key": "diametre", "label": "Diamètre", "kind": "number", "unit": "mm", "required": true, "filterable": true},
+        {"key": "materiau", "label": "Matériau", "kind": "enum", "required": true, "filterable": true, "pivot_key": "materiau", "options": ["PP", "PEHD", "aluminium"]},
+        {"key": "type_bouchon", "label": "Type de bouchon", "kind": "enum", "required": true, "filterable": true, "options": ["vis", "flip-top", "pompe"]},
+        {"key": "couleur", "label": "Couleur", "kind": "enum", "required": false, "filterable": true, "options": ["blanc", "noir", "transparent"]},
+        {"key": "joint", "label": "Joint", "kind": "bool", "required": false, "filterable": true}
+      ]
+    },
+    {
+      "slug": "etiquette-adhesive",
+      "family": "etiquettes",
+      "name_fr": "Étiquette adhésive",
+      "name_en": "Self-adhesive label",
+      "sort_order": 10,
+      "legacy_slugs": ["etiquette-auto-adhesive", "etiquette-imprimee"],
+      "attributes": [
+        {"key": "matiere", "label": "Matière", "kind": "enum", "required": true, "filterable": true, "pivot_key": "materiau", "options": ["papier", "PP", "PE"]},
+        {"key": "forme", "label": "Forme", "kind": "enum", "required": true, "filterable": true, "options": ["rectangle", "ronde", "découpée"]},
+        {"key": "dimensions", "label": "Dimensions", "kind": "text", "required": true, "filterable": true, "pivot_key": "dimensions"},
+        {"key": "adhesif", "label": "Adhésif", "kind": "enum", "required": true, "filterable": true, "options": ["permanent", "enlevable"]},
+        {"key": "impression", "label": "Impression", "kind": "enum", "required": false, "filterable": true, "options": ["sans", "flexo", "numérique"]}
+      ]
+    },
+    {
+      "slug": "boite-pliante",
+      "family": "cartons-et-boites",
+      "name_fr": "Boîte pliante",
+      "name_en": "Folding box",
+      "sort_order": 10,
+      "legacy_slugs": ["boite-pliante"],
+      "attributes": [
+        {"key": "dimensions", "label": "Dimensions", "kind": "text", "required": true, "filterable": true, "pivot_key": "dimensions"},
+        {"key": "matiere", "label": "Matière", "kind": "enum", "required": true, "filterable": true, "pivot_key": "materiau", "options": ["carton compact", "carton ondulé"]},
+        {"key": "grammage", "label": "Grammage", "kind": "number", "unit": "g/m²", "required": true, "filterable": true},
+        {"key": "impression", "label": "Impression", "kind": "enum", "required": false, "filterable": true, "options": ["sans", "offset", "flexo"]},
+        {"key": "forme", "label": "Forme", "kind": "enum", "required": false, "filterable": false, "options": ["droite", "fond automatique"]}
+      ]
+    },
+    {
+      "slug": "etui",
+      "family": "cartons-et-boites",
+      "name_fr": "Étui",
+      "name_en": "Sleeve",
+      "sort_order": 20,
+      "legacy_slugs": ["pochette-papier-carton"],
+      "attributes": [
+        {"key": "dimensions", "label": "Dimensions", "kind": "text", "required": true, "filterable": true, "pivot_key": "dimensions"},
+        {"key": "matiere", "label": "Matière", "kind": "enum", "required": true, "filterable": true, "pivot_key": "materiau", "options": ["carton compact", "papier"]},
+        {"key": "impression", "label": "Impression", "kind": "enum", "required": true, "filterable": true, "options": ["sans", "offset"]},
+        {"key": "fermeture", "label": "Fermeture", "kind": "enum", "required": false, "filterable": true, "options": ["rabat", "manchon"]},
+        {"key": "fenetre", "label": "Fenêtre", "kind": "bool", "required": false, "filterable": false}
+      ]
+    },
+    {
+      "slug": "caisse-carton-ondule",
+      "family": "cartons-et-boites",
+      "name_fr": "Caisse carton ondulé",
+      "name_en": "Corrugated case",
+      "sort_order": 30,
+      "legacy_slugs": ["caisse-carton"],
+      "attributes": [
+        {"key": "cannelure", "label": "Cannelure", "kind": "enum", "required": true, "filterable": true, "options": ["E", "B", "C", "BC"]},
+        {"key": "dimensions", "label": "Dimensions L×l×h", "kind": "text", "required": true, "filterable": true, "pivot_key": "dimensions"},
+        {"key": "grammage", "label": "Grammage", "kind": "number", "unit": "g/m²", "required": true, "filterable": true},
+        {"key": "impression", "label": "Impression", "kind": "enum", "required": true, "filterable": true, "options": ["sans", "flexo", "offset"]},
+        {"key": "matiere", "label": "Matière", "kind": "enum", "required": false, "filterable": true, "pivot_key": "materiau", "options": ["kraft", "blanc", "recyclé"]},
+        {"key": "resistance", "label": "Résistance", "kind": "text", "required": false, "filterable": false}
+      ]
+    },
+    {
+      "slug": "sachet",
+      "family": "films-et-sacs",
+      "name_fr": "Sachet",
+      "name_en": "Sachet",
+      "sort_order": 10,
+      "legacy_slugs": ["sachet-plat", "sachet-doypack"],
+      "attributes": [
+        {"key": "dimensions", "label": "Dimensions", "kind": "text", "required": true, "filterable": true, "pivot_key": "dimensions"},
+        {"key": "materiau", "label": "Matériau", "kind": "enum", "required": true, "filterable": true, "pivot_key": "materiau", "options": ["PE", "PP", "papier", "complexe"]},
+        {"key": "fermeture", "label": "Fermeture", "kind": "enum", "required": true, "filterable": true, "options": ["zip", "thermosoudure", "collerette"]},
+        {"key": "contenance", "label": "Contenance", "kind": "number", "unit": "ml", "required": false, "filterable": true, "pivot_key": "capacite"},
+        {"key": "impression", "label": "Impression", "kind": "enum", "required": false, "filterable": true, "options": ["sans", "flexo", "hélio"]}
+      ]
+    }
+  ],
+  "alternatives": [
+    {
+      "from": "flacon",
+      "to": "pot",
+      "level": "PROCHE",
+      "bidirectional": true,
+      "reason": "même usage : contenir un liquide",
+      "attribute_map": {"capacite": "capacite", "materiau": "materiau", "contact_alimentaire": "contact_alimentaire"}
+    },
+    {
+      "from": "boite-pliante",
+      "to": "etui",
+      "level": "PROCHE",
+      "bidirectional": true,
+      "reason": "même usage : protéger et présenter",
+      "attribute_map": {"dimensions": "dimensions", "matiere": "matiere"}
+    }
+  ]
+}
