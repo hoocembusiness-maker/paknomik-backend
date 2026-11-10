@@ -2,5 +2,5 @@
 builder = "NIXPACKS"
 
 [deploy]
-preDeployCommand = "python manage.py migrate --noinput && python manage.py import_hosting_catalog && python manage.py seed_boite_compartiment && python manage.py collectstatic --noinput"
+preDeployCommand = "python manage.py migrate --noinput && python manage.py import_hosting_catalog && python manage.py collectstatic --noinput"
 startCommand = "gunicorn paknomik.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120"
