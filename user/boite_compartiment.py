@@ -317,11 +317,12 @@ def update_probox_products() -> dict[str, int]:
             if spec is None:
                 stats["skipped"] += 1
                 continue
+            label = _cm_label(spec)
             _set_num(product, length, spec.length_cm)
             _set_num(product, width, spec.width_cm)
             _set_num(product, height, spec.height_cm)
             if combined:
-                _set_text(product, combined, _cm_label(spec))
+                _set_text(product, combined, label)
             if spec.layout and layout:
                 _set_text(product, layout, spec.layout)
             if spec.layout and compartment:
@@ -330,11 +331,13 @@ def update_probox_products() -> dict[str, int]:
                     product.category = family
             if spec.layout and catalog_type:
                 product.product_type = catalog_type
-                attrs = dict(product.attributes or {})
-                attrs["dimensions"] = _cm_label(spec)
+            # Keep dimensions on the product attributes payload for every Pro Box SKU.
+            attrs = dict(product.attributes or {})
+            attrs["dimensions"] = label
+            if spec.layout:
                 attrs["repartition_compartiments"] = spec.layout
                 attrs.setdefault("matiere", "carton compact")
-                product.attributes = attrs
+            product.attributes = attrs
             if spec.name_with_dims and spec.name_with_dims != product.name:
                 product.name = spec.name_with_dims
             product.save()

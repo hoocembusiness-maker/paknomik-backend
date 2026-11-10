@@ -93,6 +93,14 @@ class BoiteCompartimentTests(TestCase):
         cplus = Product.objects.get(pk=self.products["cplus"].pk)
         self.assertEqual(cplus.subcategory.slug, COMPARTMENT_TYPE_SLUG)
         self.assertEqual(_product_dimensions(cplus), "25 × 10 × 4 cm")
+        self.assertEqual(
+            ProductAttributeValue.objects.get(
+                product=cplus,
+                attribute__external_id="core-packaging-dimensions",
+            ).txt_value,
+            "25 × 10 × 4 cm",
+        )
+        self.assertEqual((cplus.attributes or {}).get("dimensions"), "25 × 10 × 4 cm")
         self.assertTrue(
             ProductAttributeValue.objects.filter(
                 product=cplus,
@@ -126,6 +134,14 @@ class BoiteCompartimentTests(TestCase):
         plain = Product.objects.get(pk=self.products["plain"].pk)
         self.assertEqual(plain.subcategory.slug, "boite-plateau")
         self.assertEqual(_product_dimensions(plain), "8 × 8 × 4 cm")
+        self.assertEqual(
+            ProductAttributeValue.objects.get(
+                product=plain,
+                attribute__external_id="core-packaging-dimensions",
+            ).txt_value,
+            "8 × 8 × 4 cm",
+        )
+        self.assertEqual((plain.attributes or {}).get("dimensions"), "8 × 8 × 4 cm")
 
     def test_seed_is_idempotent(self):
         first = seed_boite_compartiment()
