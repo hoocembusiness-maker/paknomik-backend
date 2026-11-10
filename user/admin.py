@@ -54,6 +54,7 @@ from .models import (
     Supplier,
     SupplierMandate,
     TechnicalAttribute,
+    TechnicalAttributeProposal,
     Unit,
     UsageCounter,
     User,
@@ -368,6 +369,14 @@ class TechnicalAttributeAdmin(admin.ModelAdmin):
     search_fields = ("name_en", "name_fr", "name_ar", "external_id")
     raw_id_fields = ("unit",)
     inlines = [CategoryAttributeInline]
+
+
+@admin.register(TechnicalAttributeProposal)
+class TechnicalAttributeProposalAdmin(admin.ModelAdmin):
+    list_display = ("attribute", "supplier", "category", "status", "created_at")
+    list_filter = ("status",)
+    search_fields = ("attribute__name_fr", "attribute__name_en", "supplier__company_name")
+    raw_id_fields = ("attribute", "supplier", "category")
 
 
 @admin.register(CategoryAttribute)

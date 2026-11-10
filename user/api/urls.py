@@ -9,6 +9,7 @@ from user.api import password_reset_views
 from user.api import catalog_views
 from user.api import views
 from user.api import admin_views
+from user.api import attribute_proposal_views
 from user.api import analytics_views
 from user.api import campaign_views
 from user.api import consent_views
@@ -767,6 +768,16 @@ urlpatterns = [
         "buyer/favorites/<int:supplier_id>/",
         views.BuyerFavoriteDetailView.as_view(),
         name="api_buyer_favorite_detail",
+    ),
+    path(
+        "admin/technical-attribute-proposals/",
+        attribute_proposal_views.AdminTechnicalAttributeProposalsView.as_view(),
+        name="api_admin_technical_attribute_proposals",
+    ),
+    path(
+        "admin/technical-attribute-proposals/<int:pk>/",
+        attribute_proposal_views.AdminTechnicalAttributeProposalActionView.as_view(),
+        name="api_admin_technical_attribute_proposal_action",
     ),
     path("admin/events/meta/", admin_views.AdminEventsMetaView.as_view(), name="api_admin_events_meta"),
     path("admin/events/", admin_views.AdminEventsListView.as_view(), name="api_admin_events"),

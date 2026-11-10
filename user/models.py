@@ -233,6 +233,51 @@ class AttributeOption(models.Model):
         return self.value_en
 
 
+class TechnicalAttributeProposal(models.Model):
+    """A technical attribute a supplier added, until an admin generalises it.
+
+    The attribute itself is stored as a TechnicalAttribute so the product can
+    keep a normal value. Without a category link, only that supplier sees it.
+    Generalising creates the category link and opens it to everyone.
+    """
+
+    PENDING = "pending"
+    GENERALIZED = "generalized"
+    REJECTED = "rejected"
+    STATUSES = (
+        (PENDING, "En attente"),
+        (GENERALIZED, "Généralisé"),
+        (REJECTED, "Refusé"),
+    )
+
+    attribute = models.OneToOneField(
+        TechnicalAttribute,
+        on_delete=models.CASCADE,
+        related_name="proposal",
+    )
+    supplier = models.ForeignKey(
+        "Supplier",
+        on_delete=models.CASCADE,
+        related_name="technical_attribute_proposals",
+    )
+    category = models.ForeignKey(
+        Category,
+        on_delete=models.CASCADE,
+        related_name="technical_attribute_proposals",
+    )
+    status = models.CharField(
+        max_length=16, choices=STATUSES, default=PENDING, db_index=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.attribute.name_fr or self.attribute.name_en} ({self.get_status_display()})"
+
+
 # ========================================================================
 # KNOWLEDGE BASE — FLAT LOOKUPS (kept simple on purpose)
 # ========================================================================

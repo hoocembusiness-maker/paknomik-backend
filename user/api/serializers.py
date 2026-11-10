@@ -12,6 +12,12 @@ from django.db import transaction
 from django.db.models import Count, Q
 from django.utils import timezone
 
+from user.attribute_proposals import (
+    drop_unused_supplier_proposals,
+    private_attribute_ids,
+    proposed_attribute_payload,
+    resolve_product_attribute_items,
+)
 from user.category_tree import subcategory_belongs_to_category
 from user.order_reviews import RATEABLE_STATUSES, delivery_review_stats
 from user.order_workflow import (
@@ -609,8 +615,8 @@ def _attribute_category_for_validation(category, subcategory):
     return category
 
 
-def _attribute_allowed_on_product(attribute, category, subcategory) -> bool:
-    """Accept attrs linked on the subcategory or its parent family."""
+def _attribute_allowed_on_product(attribute, category, subcategory, supplier_id=None) -> bool:
+    """Catalogue attrs on the category, plus this supplier's private proposals."""
     categories = []
     if subcategory is not None:
         categories.append(subcategory)
@@ -620,11 +626,19 @@ def _attribute_allowed_on_product(attribute, category, subcategory) -> bool:
         categories.append(category)
         if getattr(category, "parent_id", None) and category.parent not in categories:
             categories.append(category.parent)
-    if not categories:
-        return False
-    return CategoryAttribute.objects.filter(
+    if categories and CategoryAttribute.objects.filter(
         category__in=categories, attribute=attribute
-    ).exists()
+    ).exists():
+        return True
+    target = subcategory or category
+    proposal = getattr(attribute, "proposal", None)
+    if proposal is None or target is None or not supplier_id:
+        return False
+    return (
+        proposal.supplier_id == supplier_id
+        and proposal.category_id == target.id
+        and proposal.status in ("pending", "rejected")
+    )
 
 
 def _parse_json_form_list(value):
@@ -674,6 +688,10 @@ def _coerce_product_form_data(data):
     mutable["technicalAttributes"] = _parse_json_form_list(
         mutable.get("technicalAttributes")
     )
+    if "proposedAttributes" in mutable:
+        mutable["proposedAttributes"] = _parse_json_form_list(
+            mutable.get("proposedAttributes")
+        )
     mutable["searchTagIds"] = _parse_json_form_list(mutable.get("searchTagIds"))
     mutable["customKeywords"] = _parse_json_form_list(mutable.get("customKeywords"))
     mutable["targetMarkets"] = _parse_json_form_list(mutable.get("targetMarkets"))
@@ -720,7 +738,9 @@ def _save_product_technical_attributes(product, category, subcategory, items):
             attribute = TechnicalAttribute.objects.get(pk=attribute_id)
         except TechnicalAttribute.DoesNotExist:
             continue
-        if not _attribute_allowed_on_product(attribute, category, subcategory):
+        if not _attribute_allowed_on_product(
+            attribute, category, subcategory, product.supplier_id
+        ):
             continue
         parsed = _attribute_value_from_input(attribute, value)
         if (
@@ -743,6 +763,7 @@ def _save_product_technical_attributes(product, category, subcategory, items):
             attribute=attribute,
             **parsed,
         )
+    drop_unused_supplier_proposals(product.supplier_id)
 
 
 def _join_attribute_values(values) -> str | None:
@@ -1418,6 +1439,7 @@ class SupplierProductFormSerializer(serializers.ModelSerializer):
         default=Product.ListingType.SELL,
     )
     technicalAttributes = serializers.JSONField(required=False, write_only=True, default=list)
+    proposedAttributes = serializers.JSONField(required=False, write_only=True)
     searchTagIds = serializers.ListField(
         child=serializers.IntegerField(min_value=1),
         write_only=True,
@@ -1487,6 +1509,7 @@ class SupplierProductFormSerializer(serializers.ModelSerializer):
             "leadTimeDays",
             "listingType",
             "technicalAttributes",
+            "proposedAttributes",
             "searchTagIds",
             "customKeywords",
             "targetMarkets",
@@ -1510,7 +1533,23 @@ class SupplierProductFormSerializer(serializers.ModelSerializer):
         }
 
     def get_attributeValues(self, obj):
-        return _read_product_attribute_values(obj)
+        private_ids = private_attribute_ids(obj)
+        return [
+            row
+            for row in _read_product_attribute_values(obj)
+            if row["attributeId"] not in private_ids
+        ]
+
+    def validate_proposedAttributes(self, value):
+        if value is None:
+            return value
+        if not isinstance(value, list):
+            raise serializers.ValidationError("Format invalide.")
+        if len(value) > 12:
+            raise serializers.ValidationError(
+                "Douze caractéristiques personnalisées maximum."
+            )
+        return value
 
     def _validate_price_range(self, attrs):
         """A range needs a lower bound strictly below the upper bound."""
@@ -1623,11 +1662,13 @@ class SupplierProductFormSerializer(serializers.ModelSerializer):
         data = super().to_representation(instance)
         data["customKeywords"] = []
         data["targetMarkets"] = normalize_target_markets(instance.target_markets)
+        data["proposedAttributes"] = proposed_attribute_payload(instance)
         return data
 
     @transaction.atomic
     def create(self, validated_data):
         technical_attributes = validated_data.pop("technicalAttributes", [])
+        proposed_attributes = validated_data.pop("proposedAttributes", None) or []
         resolved_tag_ids = getattr(self, "_resolved_search_tag_ids", [])
         validated_data.pop("searchTagIds", None)
         validated_data.pop("customKeywords", None)
@@ -1646,7 +1687,12 @@ class SupplierProductFormSerializer(serializers.ModelSerializer):
             **validated_data,
         )
         _save_product_technical_attributes(
-            product, category, subcategory, technical_attributes
+            product,
+            category,
+            subcategory,
+            resolve_product_attribute_items(
+                product, category, subcategory, technical_attributes, proposed_attributes
+            ),
         )
         uploaded = _get_uploaded_product_images(self.context)
         if uploaded or keep_image_ids is not None:
@@ -1665,6 +1711,7 @@ class SupplierProductFormSerializer(serializers.ModelSerializer):
     @transaction.atomic
     def update(self, instance, validated_data):
         technical_attributes = validated_data.pop("technicalAttributes", None)
+        proposed_attributes = validated_data.pop("proposedAttributes", None)
         resolved_tag_ids = getattr(self, "_resolved_search_tag_ids", None)
         validated_data.pop("searchTagIds", None)
         validated_data.pop("customKeywords", None)
@@ -1679,9 +1726,18 @@ class SupplierProductFormSerializer(serializers.ModelSerializer):
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
-        if technical_attributes is not None:
+        if technical_attributes is not None or proposed_attributes is not None:
             _save_product_technical_attributes(
-                instance, category, subcategory, technical_attributes
+                instance,
+                category,
+                subcategory,
+                resolve_product_attribute_items(
+                    instance,
+                    category,
+                    subcategory,
+                    technical_attributes,
+                    proposed_attributes,
+                ),
             )
         uploaded = _get_uploaded_product_images(self.context)
         if keep_image_ids is not None or uploaded:
@@ -1893,6 +1949,9 @@ class ProductListSerializer(serializers.ModelSerializer):
     productCardStyle = serializers.SerializerMethodField()
     boutiqueSearchPriority = serializers.SerializerMethodField()
     supplierLogo = serializers.SerializerMethodField()
+    supplierType = serializers.CharField(
+        source="supplier.type", read_only=True, allow_null=True, allow_blank=True
+    )
     subcategoryId = serializers.IntegerField(source="subcategory_id", allow_null=True, read_only=True)
     listingType = serializers.CharField(source="listing_type", read_only=True)
 
@@ -1905,6 +1964,7 @@ class ProductListSerializer(serializers.ModelSerializer):
             "supplierId",
             "supplierName",
             "supplierLogo",
+            "supplierType",
             "location",
             "category",
             "subcategoryId",
@@ -2521,6 +2581,9 @@ class ProductOrderDetailSerializer(SupplierProductSerializer):
     supplierCoverColor = serializers.SerializerMethodField()
     supplierLogo = serializers.SerializerMethodField()
     supplierLogoEmoji = serializers.SerializerMethodField()
+    supplierType = serializers.CharField(
+        source="supplier.type", read_only=True, allow_null=True, allow_blank=True
+    )
     minOrderQuantity = serializers.IntegerField(source="min_order_quantity", read_only=True)
     unitPrice = serializers.DecimalField(
         source="price", max_digits=10, decimal_places=2, allow_null=True, read_only=True
@@ -2546,6 +2609,7 @@ class ProductOrderDetailSerializer(SupplierProductSerializer):
             "supplierCoverColor",
             "supplierLogo",
             "supplierLogoEmoji",
+            "supplierType",
             "minOrderQuantity",
             "unitPrice",
             "description",
