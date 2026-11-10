@@ -17,6 +17,7 @@ from user.models import (
     Product,
     ProductAttributeValue,
     Supplier,
+    TechnicalAttribute,
 )
 from user.taxonomy_v4 import apply_taxonomy_v4
 
@@ -30,6 +31,27 @@ class BoiteCompartimentTests(TestCase):
         )
         family = Category.objects.get(slug="boites-et-cartons")
         plateau = Category.objects.get(slug="boite-plateau")
+        # Family technical filters (normally present on marketplace DBs).
+        for external_id, name_fr, name_en in (
+            ("v4-04-L1-01", "Matière", "Material"),
+            ("v4-04-L1-02", "Style", "Style"),
+            ("v4-04-L1-03", "Impression", "Print"),
+        ):
+            attr, _ = TechnicalAttribute.objects.get_or_create(
+                external_id=external_id,
+                defaults={
+                    "name_fr": name_fr,
+                    "name_en": name_en,
+                    "attribute_type": "choice",
+                    "attribute_level": 1,
+                    "is_searchable": True,
+                },
+            )
+            CategoryAttribute.objects.get_or_create(
+                category=family,
+                attribute=attr,
+                defaults={"sort_order": 1},
+            )
         self.products = {
             "cplus": Product.objects.create(
                 supplier=self.supplier,
@@ -77,6 +99,22 @@ class BoiteCompartimentTests(TestCase):
         stats = seed_boite_compartiment()
         self.assertGreaterEqual(stats["updated"], 5)
         self.assertTrue(Category.objects.filter(slug=COMPARTMENT_TYPE_SLUG).exists())
+
+        compartment = Category.objects.get(slug=COMPARTMENT_TYPE_SLUG)
+        linked = set(
+            CategoryAttribute.objects.filter(category=compartment).values_list(
+                "attribute__external_id", flat=True
+            )
+        )
+        for expected in (
+            REPARTITION_EXTERNAL_ID,
+            "core-packaging-dimensions",
+            "v4-04-L1-01",  # family Matière choice
+            "v4-04-L1-02",  # Style
+            "v4-04-L1-03",  # Impression
+        ):
+            self.assertIn(expected, linked)
+        self.assertNotIn("core-packaging-matiere", linked)
 
         layout = CategoryAttribute.objects.get(
             category__slug=COMPARTMENT_TYPE_SLUG,

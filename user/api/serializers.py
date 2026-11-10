@@ -565,6 +565,24 @@ def _attribute_category_for_validation(category, subcategory):
     return category
 
 
+def _attribute_allowed_on_product(attribute, category, subcategory) -> bool:
+    """Accept attrs linked on the subcategory or its parent family."""
+    categories = []
+    if subcategory is not None:
+        categories.append(subcategory)
+        if getattr(subcategory, "parent_id", None):
+            categories.append(subcategory.parent)
+    if category is not None and category not in categories:
+        categories.append(category)
+        if getattr(category, "parent_id", None) and category.parent not in categories:
+            categories.append(category.parent)
+    if not categories:
+        return False
+    return CategoryAttribute.objects.filter(
+        category__in=categories, attribute=attribute
+    ).exists()
+
+
 def _parse_json_form_list(value):
     """Parse JSON list fields sent as strings in multipart form data."""
     if value is None or value == "":
@@ -647,7 +665,6 @@ MAX_VALUES_PER_ATTRIBUTE = 20
 
 
 def _save_product_technical_attributes(product, category, subcategory, items):
-    attribute_category = _attribute_category_for_validation(category, subcategory)
     product.attribute_values.all().delete()
     saved: dict[int, set] = {}
     for item in items or []:
@@ -659,9 +676,7 @@ def _save_product_technical_attributes(product, category, subcategory, items):
             attribute = TechnicalAttribute.objects.get(pk=attribute_id)
         except TechnicalAttribute.DoesNotExist:
             continue
-        if not CategoryAttribute.objects.filter(
-            category=attribute_category, attribute=attribute
-        ).exists():
+        if not _attribute_allowed_on_product(attribute, category, subcategory):
             continue
         parsed = _attribute_value_from_input(attribute, value)
         if (

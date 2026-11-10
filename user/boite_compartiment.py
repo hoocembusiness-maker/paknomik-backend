@@ -196,8 +196,55 @@ def _link(category: Category, attribute: TechnicalAttribute, sort_order: int) ->
     return link
 
 
+def _copy_family_attributes(target: Category, family: Category) -> int:
+    """Attach family technical attributes (with options) onto a box subtype."""
+    copied = 0
+    skip_external_ids = {
+        LENGTH_EXTERNAL_ID,
+        WIDTH_EXTERNAL_ID,
+        HEIGHT_EXTERNAL_ID,
+        # Prefer the cm dimensions owned by the subtype over family mm L/W/H.
+        "v4-04-L2-01",
+        "v4-04-L2-02",
+        "v4-04-L2-03",
+    }
+    family_links = (
+        CategoryAttribute.objects.filter(category=family)
+        .select_related("attribute")
+        .prefetch_related("options")
+    )
+    for src in family_links:
+        external_id = src.attribute.external_id or ""
+        if external_id in skip_external_ids:
+            continue
+        link, created = CategoryAttribute.objects.update_or_create(
+            category=target,
+            attribute=src.attribute,
+            defaults={
+                "sort_order": src.sort_order,
+                "is_required_for_publish": src.is_required_for_publish,
+            },
+        )
+        if created:
+            copied += 1
+        for opt in src.options.all():
+            AttributeOption.objects.update_or_create(
+                category_attribute=link,
+                value_en=opt.value_en,
+                defaults={"value_fr": opt.value_fr, "sort_order": opt.sort_order},
+            )
+    # Family already exposes Matière as a choice filter — drop the blank core text.
+    core_matiere = TechnicalAttribute.objects.filter(
+        external_id="core-packaging-matiere"
+    ).first()
+    if core_matiere:
+        CategoryAttribute.objects.filter(category=target, attribute=core_matiere).delete()
+    return copied
+
+
 def seed_boite_compartiment_attributes() -> dict[str, int]:
     compartment = ensure_compartiment_category()
+    family = Category.objects.filter(slug=FAMILY_SLUG, parent__isnull=True).first()
     plateau = Category.objects.filter(slug=PLATEAU_TYPE_SLUG, parent__slug=FAMILY_SLUG).first()
     unit = _cm_unit()
 
@@ -245,6 +292,8 @@ def seed_boite_compartiment_attributes() -> dict[str, int]:
         _link(category, length, 10)
         _link(category, width, 11)
         _link(category, height, 12)
+        if family:
+            _copy_family_attributes(category, family)
     link = _link(compartment, layout, 20)
     for index, (value_en, value_fr) in enumerate(REPARTITION_OPTIONS, start=1):
         AttributeOption.objects.update_or_create(
@@ -264,6 +313,7 @@ def seed_boite_compartiment_attributes() -> dict[str, int]:
     return {
         "type_id": compartment.id,
         "options": AttributeOption.objects.filter(category_attribute=link).count(),
+        "family_links": CategoryAttribute.objects.filter(category=compartment).count(),
     }
 
 

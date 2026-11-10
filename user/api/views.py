@@ -1473,26 +1473,71 @@ def _notify_suppliers_for_tender(tender_call):
     return notified
 
 
-def _category_attribute_links(category):
-    """Return CategoryAttribute rows for a parent category or subcategory (with parent fallback)."""
-    links = (
+def _attribute_name_fold(attribute) -> str:
+    return f"{attribute.name_fr or ''} {attribute.name_en or ''}".casefold().strip()
+
+
+def _category_attribute_link_qs(category):
+    return (
         CategoryAttribute.objects.filter(category=category)
         .select_related("attribute", "attribute__unit")
         .prefetch_related("options")
         .order_by("sort_order", "attribute__attribute_level", "attribute__name_en")
     )
-    if links.exists():
-        return links
 
-    if category.parent_id:
-        return (
-            CategoryAttribute.objects.filter(category=category.parent)
-            .select_related("attribute", "attribute__unit")
-            .prefetch_related("options")
-            .order_by("sort_order", "attribute__attribute_level", "attribute__name_en")
-        )
 
-    return links
+def _category_attribute_links(category):
+    """Own links plus parent family links.
+
+    Subcategory cores (Matière/Dimensions/Fermeture) used to hide the richer
+    family filters because any own link disabled parent fallback. Merge them:
+    keep type-specific attrs, prefer family attrs over duplicate core names.
+    """
+    own = list(_category_attribute_link_qs(category))
+    if not category.parent_id:
+        return own
+
+    parent = list(_category_attribute_link_qs(category.parent))
+    if not own:
+        return parent
+    if not parent:
+        return own
+
+    merged: list = []
+    seen_attr_ids: set[int] = set()
+    seen_names: set[str] = set()
+
+    def _add(link) -> None:
+        attr_id = link.attribute_id
+        name = _attribute_name_fold(link.attribute)
+        if attr_id in seen_attr_ids:
+            return
+        if name and name in seen_names:
+            return
+        merged.append(link)
+        seen_attr_ids.add(attr_id)
+        if name:
+            seen_names.add(name)
+
+    # 1) Type-specific attrs (not the shared packaging cores).
+    for link in own:
+        external_id = link.attribute.external_id or ""
+        if external_id.startswith("core-packaging-"):
+            continue
+        _add(link)
+
+    # 2) Family attrs (rich filters / L1 choices).
+    for link in parent:
+        _add(link)
+
+    # 3) Cores only when the family does not already cover that label.
+    for link in own:
+        external_id = link.attribute.external_id or ""
+        if not external_id.startswith("core-packaging-"):
+            continue
+        _add(link)
+
+    return merged
 
 
 def _attribute_category_for_validation(category, subcategory):
