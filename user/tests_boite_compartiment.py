@@ -4,7 +4,7 @@ from decimal import Decimal
 
 from django.test import TestCase
 
-from user.api.serializers import _product_dimensions
+from user.api.serializers import ProductListSerializer, _product_dimensions
 from user.boite_compartiment import (
     COMPARTMENT_TYPE_SLUG,
     REPARTITION_EXTERNAL_ID,
@@ -192,3 +192,13 @@ class BoiteCompartimentTests(TestCase):
             ).count(),
             1,
         )
+
+    def test_catalog_reads_dimensions_from_name_without_attributes(self):
+        cplus = self.products["cplus"]
+        self.assertEqual(_product_dimensions(cplus), "25 × 10 × 4 cm")
+        payload = ProductListSerializer(cplus).data
+        self.assertEqual(payload["dimensions"], "25 × 10 × 4 cm")
+
+        dd = self.products["dd"]
+        self.assertEqual(_product_dimensions(dd), "20 × 4 × 4 cm")
+        self.assertEqual(ProductListSerializer(dd).data["dimensions"], "20 × 4 × 4 cm")

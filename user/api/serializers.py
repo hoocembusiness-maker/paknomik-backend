@@ -5,6 +5,7 @@ Controls which fields the frontend sees and validates input.
 
 from rest_framework import serializers
 import json
+import re
 from decimal import Decimal
 
 from django.db import transaction
@@ -464,6 +465,39 @@ def _attribute_display_value(av):
     return None
 
 
+_DIMS_IN_NAME_RE = re.compile(
+    r"(\d+(?:[.,]\d+)?)\s*[×xX]\s*(\d+(?:[.,]\d+)?)\s*[×xX]\s*(\d+(?:[.,]\d+)?)\s*cm",
+    re.IGNORECASE,
+)
+_MISSING_DIMENSIONS = frozenset({"a definir", "à définir", "a définir", "—"})
+
+
+def _dimensions_from_product_name(name):
+    match = _DIMS_IN_NAME_RE.search(name or "")
+    if not match:
+        return None
+    return f"{match.group(1)} × {match.group(2)} × {match.group(3)} cm"
+
+
+def _dimensions_from_stored_attributes(product):
+    attrs = getattr(product, "attributes", None) or {}
+    if not isinstance(attrs, dict):
+        return None
+    stored = str(attrs.get("dimensions") or "").strip()
+    if stored and stored.casefold() not in _MISSING_DIMENSIONS:
+        return stored
+    return None
+
+
+def _dimensions_from_probox_spec(name):
+    from user.boite_compartiment import _cm_label, _spec_for
+
+    spec = _spec_for(name or "")
+    if spec is None:
+        return None
+    return _cm_label(spec)
+
+
 def _normalize_dim_key(attr):
     names = " ".join(
         filter(
@@ -531,6 +565,16 @@ def _product_dimensions(product):
             if av.num_value is not None:
                 unit = av.attribute.unit.symbol if av.attribute.unit_id else "mm"
                 return f"{_plain_number(av.num_value)}{unit}"
+
+    stored = _dimensions_from_stored_attributes(product)
+    if stored:
+        return stored
+    from_name = _dimensions_from_product_name(getattr(product, "name", "") or "")
+    if from_name:
+        return from_name
+    from_spec = _dimensions_from_probox_spec(getattr(product, "name", "") or "")
+    if from_spec:
+        return from_spec
     return "A définir"
 
 
@@ -1842,6 +1886,7 @@ class ProductListSerializer(serializers.ModelSerializer):
     tags = serializers.SerializerMethodField()
     searchTags = serializers.SerializerMethodField()
     attributeValues = serializers.SerializerMethodField()
+    dimensions = serializers.SerializerMethodField()
     imageUrl = serializers.SerializerMethodField()
     secondaryImageUrl = serializers.SerializerMethodField()
     emoji = serializers.SerializerMethodField()
@@ -1872,6 +1917,7 @@ class ProductListSerializer(serializers.ModelSerializer):
             "tags",
             "searchTags",
             "attributeValues",
+            "dimensions",
             "imageUrl",
             "secondaryImageUrl",
             "emoji",
@@ -1913,6 +1959,9 @@ class ProductListSerializer(serializers.ModelSerializer):
 
     def get_attributeValues(self, obj):
         return _read_product_attribute_values(obj)
+
+    def get_dimensions(self, obj):
+        return _product_dimensions(obj)
 
     def get_searchTags(self, obj):
         return [
