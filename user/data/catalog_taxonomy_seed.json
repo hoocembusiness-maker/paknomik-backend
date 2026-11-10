@@ -86,6 +86,21 @@
       ]
     },
     {
+      "slug": "boite-compartimentee",
+      "family": "cartons-et-boites",
+      "name_fr": "Boîte compartimentée",
+      "name_en": "Compartment box",
+      "sort_order": 15,
+      "legacy_slugs": ["boite-compartimentee"],
+      "attributes": [
+        {"key": "dimensions", "label": "Dimensions", "kind": "text", "required": true, "filterable": true, "pivot_key": "dimensions"},
+        {"key": "matiere", "label": "Matière", "kind": "enum", "required": true, "filterable": true, "pivot_key": "materiau", "options": ["carton compact", "carton ondulé", "plastique"]},
+        {"key": "repartition_compartiments", "label": "Répartition des compartiments", "kind": "enum", "required": true, "filterable": true, "options": ["2x2", "2x3", "2x4", "2x5", "3x3", "3x4", "4x4", "3 alignées", "4 alignées", "5 alignées", "1 + 2 demi", "1 + 3"]},
+        {"key": "fermeture", "label": "Fermeture", "kind": "enum", "required": false, "filterable": true, "options": ["sans", "couvercle", "rabat"]},
+        {"key": "hauteur", "label": "Hauteur", "kind": "number", "unit": "cm", "required": false, "filterable": true}
+      ]
+    },
+    {
       "slug": "etui",
       "family": "cartons-et-boites",
       "name_fr": "Étui",
@@ -140,6 +155,14 @@
       "bidirectional": true,
       "reason": "même usage : contenir un liquide",
       "attribute_map": {"capacite": "capacite", "materiau": "materiau", "contact_alimentaire": "contact_alimentaire"}
+    },
+    {
+      "from": "boite-compartimentee",
+      "to": "boite-pliante",
+      "level": "PROCHE",
+      "bidirectional": true,
+      "reason": "même usage : contenir et présenter un produit",
+      "attribute_map": {"dimensions": "dimensions", "matiere": "matiere"}
     },
     {
       "from": "boite-pliante",

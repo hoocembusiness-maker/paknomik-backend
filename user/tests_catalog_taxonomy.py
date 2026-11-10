@@ -481,6 +481,7 @@ class CatalogApiTests(TestCase):
         self.assertEqual(first, second)
         self.assertGreaterEqual(Category.objects.count(), before)
         self.assertTrue(ProductType.objects.filter(slug="flacon").exists())
+        self.assertTrue(ProductType.objects.filter(slug="boite-compartimentee").exists())
         self.assertTrue(
             TypeAlternative.objects.filter(
                 from_type__slug="flacon", to_type__slug="pot"

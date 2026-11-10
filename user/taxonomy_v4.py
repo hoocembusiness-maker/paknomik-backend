@@ -257,6 +257,14 @@ TYPES: list[TypeSpec] = [
     TypeSpec("boites-et-cartons", "boite-plateau", "Boîte plateau", "Tray box", 60),
     TypeSpec(
         "boites-et-cartons",
+        "boite-compartimentee",
+        "Boîte compartimentée",
+        "Compartment box",
+        65,
+        reuse_slugs=["boite-compartimentee", "boite-compartiment"],
+    ),
+    TypeSpec(
+        "boites-et-cartons",
         "boite-presentoir-display",
         "Boîte présentoir / display",
         "Display box",

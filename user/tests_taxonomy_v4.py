@@ -27,6 +27,7 @@ class TaxonomyV4Tests(TestCase):
         self.assertIn("pots-gobelets-contenants", ACTIVE_FAMILY_SLUGS)
         self.assertIn("papiers-emballage", ACTIVE_FAMILY_SLUGS)
         self.assertEqual(Category.objects.filter(slug="boite-pliante").count(), 1)
+        self.assertEqual(Category.objects.filter(slug="boite-compartimentee").count(), 1)
 
     def test_api_hides_legacy_and_flags_services(self):
         apply_taxonomy_v4()
@@ -43,6 +44,7 @@ class TaxonomyV4Tests(TestCase):
         types = client.get("/api/subcategories/", {"parent": family_id}).json()
         type_slugs = {row["slug"] for row in types}
         self.assertIn("boite-pliante", type_slugs)
+        self.assertIn("boite-compartimentee", type_slugs)
         self.assertTrue(all(row["familyId"] == family_id for row in types))
 
     def test_product_override_maps_gobelet_and_barquette(self):
