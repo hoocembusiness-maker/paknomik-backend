@@ -793,7 +793,8 @@ def _read_product_attribute_values(product):
             value = av.txt_value
         else:
             value = "true" if av.bool_value else "false"
-        rows.append({"attributeId": av.attribute_id, "value": value})
+        label = (av.attribute.name_fr or av.attribute.name_en or "").strip()
+        rows.append({"attributeId": av.attribute_id, "value": value, "label": label})
     return rows
 
 
@@ -1896,6 +1897,7 @@ class SupplierDetailSerializer(SupplierListSerializer):
     def get_stats(self, obj):
         product_count = obj.products.filter(is_active=True).count()
         order_count = Order.objects.filter(supplier=obj).count()
+        quote_count = RFQRequest.objects.filter(supplier=obj).count()
         score_record = ensure_supplier_score(obj.id)
         rank, _ = get_supplier_rank(obj.id)
         return [
@@ -1903,6 +1905,7 @@ class SupplierDetailSerializer(SupplierListSerializer):
             {"label": "Classement", "value": str(rank)},
             {"label": "Produit", "value": str(product_count)},
             {"label": "Commandes", "value": str(order_count)},
+            {"label": "Demandes de devis", "value": str(quote_count)},
         ]
 
     def get_faq(self, obj):

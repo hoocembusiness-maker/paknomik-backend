@@ -75,8 +75,17 @@ class PaknomikSocialAccountAdapter(DefaultSocialAccountAdapter):
         User = get_user_model()
         safe = "".join(ch for ch in base.lower() if ch.isalnum() or ch in "._-") or "user"
         candidate = safe[:40]
+        if not User.objects.filter(username=candidate).exists():
+            return candidate
+        # One query for existing suffixes instead of N exists() round-trips.
+        prefix = safe[:35]
+        taken = set(
+            User.objects.filter(username__startswith=prefix)
+            .values_list("username", flat=True)[:200]
+        )
         suffix = 1
-        while User.objects.filter(username=candidate).exists():
-            candidate = f"{safe[:35]}{suffix}"
+        while True:
+            candidate = f"{prefix}{suffix}"
+            if candidate not in taken:
+                return candidate
             suffix += 1
-        return candidate

@@ -1180,11 +1180,20 @@ class GoogleTokenAuthView(APIView):
             )
 
         from allauth.socialaccount.adapter import get_adapter as get_social_adapter
+        from allauth.socialaccount.providers.oauth2.client import OAuth2Error
+        import requests
+
+        from user.google_id_token import verify_google_id_token
 
         provider = get_social_adapter().get_provider(request, "google")
         try:
-            sociallogin = provider.verify_token(request, {"id_token": credential})
-        except Exception:
+            # Cached cert fetch — allauth's verify_token hits Google on every call.
+            identity_data = verify_google_id_token(
+                credential,
+                audience=provider.app.client_id,
+            )
+            sociallogin = provider.sociallogin_from_response(request, identity_data)
+        except (OAuth2Error, requests.RequestException, ValueError):
             return Response(
                 {"error": "Invalid Google token"},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -1763,10 +1772,9 @@ class SupplierMarketAnalysisView(APIView):
         month = max(1, min(12, month))
 
         active_products = supplier.products.filter(is_active=True).count()
-        category_count = supplier.interested_categories.count()
-        from user.supplier_competitors import count_direct_competitors
+        from user import market_intel
 
-        competitors = count_direct_competitors(supplier)
+        prereq = market_intel.market_prerequisites(supplier)
 
         log_seller_event(
             user,
@@ -1785,8 +1793,14 @@ class SupplierMarketAnalysisView(APIView):
                 "month": month,
                 "summary": {
                     "activeProducts": active_products,
-                    "categories": category_count,
-                    "directCompetitors": competitors,
+                    "categories": prereq["categories"],
+                    "directCompetitors": prereq["comparableSuppliers"],
+                },
+                "prerequisites": {
+                    "anonymityThreshold": prereq["anonymityThreshold"],
+                    "canCategoryAnalysis": prereq["canCategoryAnalysis"],
+                    "canBenchmark": prereq["canBenchmark"],
+                    "canMarketPerformance": prereq["canMarketPerformance"],
                 },
                 "status": "coming_soon",
             }

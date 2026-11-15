@@ -64,6 +64,103 @@ class NotEnoughData(ValidationError):
         )
 
 
+class PrerequisiteNotMet(ValidationError):
+    """Raised when a paid report cannot be generated — never charge in this case."""
+
+    def __init__(self, message: str, *, code: str = "prerequisite_not_met"):
+        super().__init__({"error": message, "code": code})
+
+
+def anonymity_threshold() -> int:
+    """Minimum comparable suppliers required for anonymized benchmarking."""
+    return max(get_int("benchmark_min_suppliers", 5), 2)
+
+
+def supplier_category_count(supplier) -> int:
+    return supplier.interested_categories.count()
+
+
+def supplier_comparable_count(supplier) -> int:
+    from user.supplier_competitors import count_direct_competitors
+
+    return count_direct_competitors(supplier)
+
+
+def market_prerequisites(supplier) -> dict:
+    """Flags shared by the market page KPIs and the purchasable catalog."""
+    categories = supplier_category_count(supplier)
+    peers = supplier_comparable_count(supplier)
+    threshold = anonymity_threshold()
+    can_category = categories > 0
+    can_benchmark = peers >= threshold
+    return {
+        "anonymityThreshold": threshold,
+        "categories": categories,
+        "comparableSuppliers": peers,
+        "canCategoryAnalysis": can_category,
+        "canBenchmark": can_benchmark,
+        "canMarketPerformance": can_category and can_benchmark,
+    }
+
+
+def report_generation_gate(supplier, report_type: str) -> tuple[bool, str | None]:
+    """
+    Return (can_generate, block_reason).
+    Reasons are user-facing French strings for the catalogue UI.
+    """
+    prereq = market_prerequisites(supplier)
+    if report_type == MARKET_CATEGORY and not prereq["canCategoryAnalysis"]:
+        return False, "Aucune catégorie renseignée : ajoutez au moins une catégorie."
+    if report_type == BENCHMARK_SUPPLIER and not prereq["canBenchmark"]:
+        if prereq["comparableSuppliers"] <= 0:
+            return (
+                False,
+                "Seuil d'anonymat non atteint : aucun fournisseur comparable.",
+            )
+        return (
+            False,
+            (
+                "Seuil d'anonymat non atteint : "
+                f"{prereq['comparableSuppliers']} fournisseur(s) comparable(s), "
+                f"{prereq['anonymityThreshold']} requis."
+            ),
+        )
+    if report_type == MARKET_PERFORMANCE and not prereq["canMarketPerformance"]:
+        if not prereq["canCategoryAnalysis"]:
+            return False, "Aucune catégorie renseignée : ajoutez au moins une catégorie."
+        if prereq["comparableSuppliers"] <= 0:
+            return (
+                False,
+                "Seuil d'anonymat non atteint : aucun fournisseur comparable.",
+            )
+        return (
+            False,
+            (
+                "Seuil d'anonymat non atteint : "
+                f"{prereq['comparableSuppliers']} fournisseur(s) comparable(s), "
+                f"{prereq['anonymityThreshold']} requis."
+            ),
+        )
+    return True, None
+
+
+def assert_report_prerequisites(supplier, report_type: str) -> None:
+    """
+    Refuse generation (and therefore debit) when business prerequisites fail.
+
+    Anonymity-threshold failures for benchmarking stay in `_build_benchmark`
+    (`insufficient_data`) so existing API contracts remain stable. This gate
+    covers the category-count rule that was not previously enforced.
+    """
+    if report_type not in {MARKET_CATEGORY, MARKET_PERFORMANCE}:
+        return
+    prereq = market_prerequisites(supplier)
+    if not prereq["canCategoryAnalysis"]:
+        raise PrerequisiteNotMet(
+            "Aucune catégorie renseignée : ajoutez au moins une catégorie."
+        )
+
+
 def _month_bounds(year: int, month: int) -> tuple[date, date]:
     last = calendar.monthrange(year, month)[1]
     return date(year, month, 1), date(year, month, last)
@@ -188,6 +285,8 @@ def build_report(supplier, report_type: str, params: dict) -> dict:
         raise ValidationError(
             {"error": "Type de rapport inconnu.", "code": "unknown_report"}
         )
+
+    assert_report_prerequisites(supplier, report_type)
 
     start, end = resolve_period(report_type, params)
     assert_period_is_closed(report_type, start, end)

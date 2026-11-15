@@ -86,8 +86,12 @@ class AnalyticsCatalogView(APIView):
             return denied
 
         plan = get_supplier_plan_code(supplier)
-        wallet = wallet_payload(supplier, category="analytics")
+        # Debits auto-cover from other envelopes, so affordability and the UI
+        # balance must use the supplier total — not the analytics pocket alone.
+        wallet = wallet_payload(supplier)
+        analytics_wallet = wallet_payload(supplier, category="analytics")
         available = float(wallet["available"])
+        prereq = market_intel.market_prerequisites(supplier)
 
         services = {
             service.code: service
@@ -101,6 +105,13 @@ class AnalyticsCatalogView(APIView):
             if service is None or not service.is_active:
                 continue
             cost = float(service.cost_pragmadinar)
+            can_generate, block_reason = market_intel.report_generation_gate(
+                supplier, code
+            )
+            access = service_access_for_plan(service, plan)
+            if access == "unavailable":
+                can_generate = False
+                block_reason = block_reason or "Cette analyse n'est pas disponible."
             catalog.append(
                 {
                     "code": code,
@@ -114,11 +125,13 @@ class AnalyticsCatalogView(APIView):
                         service.unit_quantity,
                         service.unit_label,
                     ),
-                    "access": service_access_for_plan(service, plan),
+                    "access": access,
                     "affordable": available >= cost,
                     "balanceAfter": str(round(available - cost, 2)),
                     "needsPeriod": code == market_intel.MARKET_PERIOD,
                     "needsCategory": code == market_intel.MARKET_CATEGORY,
+                    "canGenerate": can_generate,
+                    "blockReason": block_reason,
                 }
             )
 
@@ -126,6 +139,15 @@ class AnalyticsCatalogView(APIView):
             {
                 "plan": plan,
                 "wallet": wallet,
+                "analyticsWallet": analytics_wallet,
+                "prerequisites": {
+                    "anonymityThreshold": prereq["anonymityThreshold"],
+                    "categories": prereq["categories"],
+                    "comparableSuppliers": prereq["comparableSuppliers"],
+                    "canCategoryAnalysis": prereq["canCategoryAnalysis"],
+                    "canBenchmark": prereq["canBenchmark"],
+                    "canMarketPerformance": prereq["canMarketPerformance"],
+                },
                 "currentMonthIsFree": False,
                 "reports": catalog,
             }
@@ -207,6 +229,7 @@ class AnalyticsReportPurchaseView(APIView):
             result = _report_summary(existing)
             result["payload"] = existing.payload
             result["alreadyOwned"] = True
+            result["wallet"] = wallet_payload(supplier)
             return Response(result)
 
         service = get_service(report_type)
@@ -240,7 +263,7 @@ class AnalyticsReportPurchaseView(APIView):
         result = _report_summary(report)
         result["payload"] = payload
         result["alreadyOwned"] = False
-        result["wallet"] = wallet_payload(supplier, category="analytics")
+        result["wallet"] = wallet_payload(supplier)
         return Response(result, status=status.HTTP_201_CREATED)
 
 
@@ -282,5 +305,5 @@ class AnalyticsCurrentMonthView(APIView):
         )
         payload["free"] = False
         payload["title"] = "Tableau de bord de mois en cours"
-        payload["wallet"] = wallet_payload(supplier, category="analytics")
+        payload["wallet"] = wallet_payload(supplier)
         return Response(payload)

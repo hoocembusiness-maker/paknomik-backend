@@ -3,6 +3,7 @@ from pathlib import Path
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.test import TestCase
+from django.urls import reverse
 from rest_framework.test import APIClient
 
 from buyer_space.catalogue_import import import_catalogue
@@ -251,3 +252,55 @@ class CatalogueImportTests(TestCase):
             SuiteImage.objects.filter(definition=definition).count(),
             1,
         )
+
+
+class QuickQuoteTests(TestCase):
+    def test_one_click_creates_then_reuses_a_demand(self):
+        family = Category.objects.create(name_en="Bottles", name_fr="Bouteilles et flacons", level=1)
+        Category.objects.create(name_en="PET bottle", name_fr="Bouteille PET", parent=family, level=2)
+        parent = SuiteTaxon.objects.create(
+            kind=SuiteTaxon.Kind.FAMILY, code="F-C", label_fr="C. Bouteilles et flacons"
+        )
+        taxon = SuiteTaxon.objects.create(
+            kind=SuiteTaxon.Kind.TYPE,
+            code="bouteille-pet-ou-pppehd",
+            label_fr="Bouteille PET ou PP/PEHD",
+            parent=parent,
+        )
+        ensemble = SuiteEnsemble.objects.create(
+            code="PKS-TEST-Q",
+            name="Kit rapide",
+            slug="pks-test-q",
+            description="Kit pour un devis en un clic.",
+            sourced_facts="Test.",
+            editorial_status=SuiteEnsemble.Status.PUBLISHED,
+        )
+        definition = SuiteComponentDefinition.objects.create(
+            code="bouteille-pet-ou-pppehd",
+            label="Bouteille PET ou PP/PEHD",
+        )
+        line = SuiteComponentLine.objects.create(
+            ensemble=ensemble,
+            definition=definition,
+            taxon=taxon,
+            role="Contenant",
+            level=SuiteComponentLine.Level.PRIMARY,
+            status=SuiteComponentLine.Status.REQUIRED,
+        )
+        buyer = User.objects.create_user(
+            username="quickbuyer",
+            email="quickbuyer@example.com",
+            password="Testpass!2345",
+        )
+        client = APIClient()
+        client.force_authenticate(buyer)
+        url = reverse("api_paksuites_ensemble_quote", args=[ensemble.slug])
+        created = client.post(url, {"lineIds": [line.id]}, format="json")
+        self.assertEqual(created.status_code, 201, created.content)
+        self.assertEqual(created.json()["createdCount"], 1)
+        self.assertEqual(QuoteDemand.objects.count(), 1)
+        self.assertEqual(QuoteDemand.objects.get().quantity, 1)
+        again = client.post(url, {"lineIds": [line.id]}, format="json")
+        self.assertEqual(again.status_code, 201, again.content)
+        self.assertEqual(again.json()["reusedCount"], 1)
+        self.assertEqual(QuoteDemand.objects.count(), 1)
