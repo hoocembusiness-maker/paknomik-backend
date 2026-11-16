@@ -2810,9 +2810,21 @@ class Campaign(models.Model):
     """Sponsored visibility campaign funded in Pragmadinar."""
 
     class Format(models.TextChoices):
-        VITRINE_EXTRA = "vitrine_extra", "Vitrine Extra"
-        VITRINE_CENTRAL = "vitrine_central", "Vitrine Centrale"
-        VITRINE_MEGA = "vitrine_mega", "Vitrine Mega"
+        VITRINE_EXTRA_SEARCH = (
+            "vitrine_extra_search",
+            "Vitrine Extra — résultats de recherche",
+        )
+        VITRINE_CENTRAL_SEARCH = (
+            "vitrine_central_search",
+            "Vitrine Centrale — résultats de recherche",
+        )
+        VITRINE_MEGA_SEARCH = (
+            "vitrine_mega_search",
+            "Vitrine Mega — résultats de recherche",
+        )
+        VITRINE_EXTRA = "vitrine_extra", "Vitrine Extra — boutique"
+        VITRINE_CENTRAL = "vitrine_central", "Vitrine Centrale — boutique"
+        VITRINE_MEGA = "vitrine_mega", "Vitrine Mega — boutique"
         CARD_PASSPORT = "card_passport", "Carte Passport"
         CARD_HORIZONTAL = "card_horizontal", "Carte horizontale"
         BANNER = "banner", "Bannière horizontale (résultats de recherche)"

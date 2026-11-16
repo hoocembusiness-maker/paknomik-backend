@@ -27,6 +27,9 @@ from user.pragmadinar import (
 from user.platform_config import pragmadinar_to_dzd
 
 FORMAT_SERVICE = {
+    "vitrine_extra_search": "visibility.vitrine_extra_search",
+    "vitrine_central_search": "visibility.vitrine_central_search",
+    "vitrine_mega_search": "visibility.vitrine_mega_search",
     "vitrine_extra": "visibility.vitrine_extra",
     "vitrine_central": "visibility.vitrine_central",
     "vitrine_mega": "visibility.vitrine_mega",
@@ -39,9 +42,12 @@ FORMAT_SERVICE = {
 }
 
 FORMAT_GROUP = {
-    "vitrine_extra": "vitrine",
-    "vitrine_central": "vitrine",
-    "vitrine_mega": "vitrine",
+    "vitrine_extra_search": "vitrine_search",
+    "vitrine_central_search": "vitrine_search",
+    "vitrine_mega_search": "vitrine_search",
+    "vitrine_extra": "vitrine_boutique",
+    "vitrine_central": "vitrine_boutique",
+    "vitrine_mega": "vitrine_boutique",
     "card_passport": "card",
     "card_horizontal": "card",
     "banner": "banner",
@@ -51,11 +57,14 @@ FORMAT_GROUP = {
 }
 
 FORMAT_PLACEMENT = {
-    "vitrine_extra": "search_results",
-    "vitrine_central": "search_results",
-    "vitrine_mega": "search_results",
-    "card_passport": "search_results",
-    "card_horizontal": "search_results",
+    "vitrine_extra_search": "search_results",
+    "vitrine_central_search": "search_results",
+    "vitrine_mega_search": "search_results",
+    "vitrine_extra": "supplier_boutique",
+    "vitrine_central": "supplier_boutique",
+    "vitrine_mega": "supplier_boutique",
+    "card_passport": "supplier_boutique",
+    "card_horizontal": "supplier_boutique",
     "banner": "search_results_bottom",
     "banner_conversation": "buyer_conversations",
     "keyword_reservation": "search_keyword",
@@ -64,6 +73,7 @@ FORMAT_PLACEMENT = {
 
 PLACEMENT_LABELS = {
     "search_results": "Résultats de recherche",
+    "supplier_boutique": "Boutique fournisseur",
     "search_results_bottom": "Bas des résultats de recherche",
     "buyer_conversations": "Espace conversation acheteur",
     "search_keyword": "Recherches contenant le mot-clé",
@@ -95,6 +105,11 @@ TIER_SEARCH_SERVICE = {
 }
 
 VITRINE_STORE_FORMATS = tuple(TIER_TO_FORMAT.values())
+VITRINE_SEARCH_FORMATS = (
+    "vitrine_extra_search",
+    "vitrine_central_search",
+    "vitrine_mega_search",
+)
 CARD_STORE_FORMATS = ("card_passport", "card_horizontal")
 
 CARD_LAYOUT_FORMAT = {
@@ -315,7 +330,8 @@ def create_campaign(supplier, data, *, actor=None):
         duration_days = None
         budget = (tariff_display_cost(service) * Decimal(goal_count)).quantize(Decimal("0.01"))
     if service.code not in UNBILLED_SERVICE_CODES:
-        available = Decimal(wallet_payload(supplier, category="promotion")["available"])
+        # Debits auto-cover from other envelopes — affordability uses total.
+        available = Decimal(wallet_payload(supplier)["available"])
         if budget > available:
             raise InsufficientPragmadinar(budget, available)
     default_name = f"{Campaign.Format(fmt).label} — {timezone.localdate():%d/%m/%Y}"
@@ -524,7 +540,7 @@ def active_vitrine_campaign(supplier_id: int, campaign_format: str):
 def bill_vitrine_search_impression(supplier_id: int, *, request=None) -> None:
     """Bill Pragmadinar when the paid store header is shown in search results."""
     from user.events import is_supplier_self_view
-    from user.models import Supplier
+    from user.models import Campaign, Supplier
 
     if not supplier_id or (request and is_supplier_self_view(request, supplier_id)):
         return
@@ -535,6 +551,20 @@ def bill_vitrine_search_impression(supplier_id: int, *, request=None) -> None:
         "settings"
     ).first()
     if supplier is None:
+        return
+
+    campaign = (
+        Campaign.objects.filter(
+            supplier_id=supplier_id,
+            status=Campaign.Status.ACTIVE,
+            campaign_format__in=VITRINE_SEARCH_FORMATS,
+        )
+        .order_by("-updated_at")
+        .first()
+    )
+    if campaign is not None:
+        record_sponsored_hit(campaign, kind="view", request=request)
+        bill_product_card_search_impression(supplier_id, request=request)
         return
 
     tier = store_header_tier(supplier)

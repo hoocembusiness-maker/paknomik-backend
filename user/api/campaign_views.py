@@ -104,11 +104,15 @@ class CampaignListView(APIView):
                         if service
                         else ""
                     ),
+                    "unit": service.unit if service else "",
+                    "unitLabel": service.unit_label if service else "",
                 }
             )
         return Response(
             {
-                "wallet": wallet_payload(supplier, category="promotion"),
+                # Debits auto-cover from other envelopes, so the UI balance
+                # must use the supplier total — not the promotion pocket alone.
+                "wallet": wallet_payload(supplier),
                 "formats": formats,
                 "objectives": [
                     {"value": v, "label": l} for v, l in Campaign.Objective.choices
@@ -276,7 +280,7 @@ class ExtraTemplatePurchaseView(APIView):
         templates = _normalize_proposal_templates(settings.proposal_templates)
         proposal = get_service(PROPOSAL_TEMPLATE_SERVICE)
         quote = get_service(QUOTE_TEMPLATE_SERVICE)
-        wallet = wallet_payload(supplier, category="promotion")
+        wallet = wallet_payload(supplier)
         return Response(
             {
                 "wallet": wallet,
@@ -352,7 +356,7 @@ class ExtraTemplatePurchaseView(APIView):
                 "template": extra,
                 "owned": len(templates),
                 "reference": ledger.reference,
-                "wallet": wallet_payload(supplier, category="promotion"),
+                "wallet": wallet_payload(supplier),
             },
             status=status.HTTP_201_CREATED,
         )
